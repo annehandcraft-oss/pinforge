@@ -1,6 +1,10 @@
 /* ==========================================================================
    PinForge v0.2 — app.js
-   Stable Image Position + Mobile Floating Preview + Export
+   FINAL STABLE BUILD
+   - Position X/Y working
+   - Mobile floating preview
+   - iOS Safari export
+   - Exact 1000 × 1500 PNG
    ========================================================================== */
 
 (function () {
@@ -20,9 +24,9 @@
     imageMoveRange: 10,
 
     mobileBreakpoint: 1024,
-    mobileFloatingTop: 72,
+    floatingTop: 82,
 
-    successDuration: 1600,
+    successDuration: 1800,
   };
 
 
@@ -74,26 +78,22 @@
   const dom = {
     siteHeader: document.getElementById("siteHeader"),
 
-    // Upload
     dropzone: document.getElementById("dropzone"),
     fileInput: document.getElementById("fileInput"),
     removeImageBtn: document.getElementById("removeImageBtn"),
 
-    // Preview
     pinCard: document.getElementById("pinCard"),
     pinImage: document.getElementById("pinImage"),
     pinPlaceholder: document.getElementById("pinPlaceholder"),
     pinTextWrap: document.getElementById("pinTextWrap"),
     pinScrim: document.getElementById("pinScrim"),
 
-    // Image adjustment
     zoomSlider: document.getElementById("zoomSlider"),
     zoomValue: document.getElementById("zoomValue"),
     posXSlider: document.getElementById("posXSlider"),
     posYSlider: document.getElementById("posYSlider"),
     resetPositionBtn: document.getElementById("resetPositionBtn"),
 
-    // Text
     headlineInput: document.getElementById("headlineInput"),
     subheadlineInput: document.getElementById("subheadlineInput"),
     headlineCount: document.getElementById("headlineCount"),
@@ -102,53 +102,36 @@
     pinHeadline: document.getElementById("pinHeadline"),
     pinSubheadline: document.getElementById("pinSubheadline"),
 
-    // Overlay
     styleToggle: document.getElementById("styleToggle"),
     styleTogglePill: document.getElementById("styleTogglePill"),
 
-    // Customize
     customizeToggleBtn: document.getElementById("customizeToggleBtn"),
     customizePanel: document.getElementById("customizePanel"),
     customizeChevron: document.getElementById("customizeChevron"),
 
-    // Font
     fontSelector: document.getElementById("fontSelector"),
 
-    // Color
     colorSelector: document.getElementById("colorSelector"),
     customColorSwatch: document.getElementById("customColorSwatch"),
     customColorInput: document.getElementById("customColorInput"),
 
-    // CTA
     ctaSelect: document.getElementById("ctaSelect"),
     ctaCustomInput: document.getElementById("ctaCustomInput"),
     pinCtaWrap: document.getElementById("pinCtaWrap"),
     pinCtaLabel: document.getElementById("pinCtaLabel"),
 
-    // Export
     downloadBtn: document.getElementById("downloadBtn"),
-    downloadIcon: document.getElementById("downloadIcon"),
-    downloadLabel: document.getElementById("downloadLabel"),
     exportGhost: document.getElementById("exportGhost"),
   };
 
 
   /* ==========================================================================
      5. IMAGE TRANSFORM
+     DO NOT CHANGE — THIS IS THE WORKING X/Y SYSTEM
      ========================================================================== */
 
   function getImageTransform() {
     const scale = state.zoom / 100;
-
-    /*
-      Slider:
-      0   = move toward left/top
-      50  = center
-      100 = move toward right/bottom
-
-      Because image has 10% overscan on every side,
-      ±10% gives us visible movement without exposing empty space.
-    */
 
     const x =
       ((state.posX - 50) / 50) *
@@ -162,54 +145,54 @@
   }
 
 
-  function applyImageTransform(imageElement = dom.pinImage) {
-    if (!imageElement) return;
+  function applyImageTransform(image = dom.pinImage) {
+    if (!image) return;
 
-    imageElement.style.transform = getImageTransform();
-    imageElement.style.transformOrigin = "center center";
+    image.style.transform =
+      getImageTransform();
 
-    /*
-      Keep object-position centered.
+    image.style.transformOrigin =
+      "center center";
 
-      Actual X/Y movement is now controlled with transform,
-      which behaves much more consistently on Safari.
-    */
-    imageElement.style.objectPosition = "50% 50%";
+    image.style.objectPosition =
+      "50% 50%";
   }
 
 
   function updateImageControls() {
-    if (dom.zoomSlider) {
+    if (dom.zoomSlider)
       dom.zoomSlider.value = state.zoom;
-    }
 
-    if (dom.zoomValue) {
-      dom.zoomValue.textContent = `${state.zoom}%`;
-    }
+    if (dom.zoomValue)
+      dom.zoomValue.textContent =
+        `${state.zoom}%`;
 
-    if (dom.posXSlider) {
+    if (dom.posXSlider)
       dom.posXSlider.value = state.posX;
-    }
 
-    if (dom.posYSlider) {
+    if (dom.posYSlider)
       dom.posYSlider.value = state.posY;
-    }
 
     applyImageTransform();
   }
 
 
   function resetImagePosition() {
-    state.zoom = CONFIG.zoomDefault;
-    state.posX = CONFIG.positionDefault;
-    state.posY = CONFIG.positionDefault;
+    state.zoom =
+      CONFIG.zoomDefault;
+
+    state.posX =
+      CONFIG.positionDefault;
+
+    state.posY =
+      CONFIG.positionDefault;
 
     updateImageControls();
   }
 
 
   /* ==========================================================================
-     6. IMAGE UPLOAD
+     6. UPLOAD
      ========================================================================== */
 
   function handleFile(file) {
@@ -225,10 +208,12 @@
       return;
     }
 
-    const reader = new FileReader();
+    const reader =
+      new FileReader();
 
     reader.onload = function (event) {
-      const src = event.target.result;
+      const src =
+        event.target.result;
 
       if (!src) return;
 
@@ -237,29 +222,28 @@
       if (dom.pinImage) {
         dom.pinImage.src = src;
 
-        dom.pinImage.classList.remove("hidden");
-        dom.pinImage.classList.add("pf-animate-in");
+        dom.pinImage.classList.remove(
+          "hidden"
+        );
+
+        dom.pinImage.classList.add(
+          "pf-animate-in"
+        );
       }
 
-      if (dom.pinPlaceholder) {
-        dom.pinPlaceholder.classList.add("hidden");
-      }
+      dom.pinPlaceholder
+        ?.classList.add("hidden");
 
-      if (dom.removeImageBtn) {
-        dom.removeImageBtn.classList.remove("hidden");
-      }
-
-      /*
-        Every newly uploaded image starts:
-        Zoom 100
-        X 50
-        Y 50
-      */
+      dom.removeImageBtn
+        ?.classList.remove("hidden");
 
       resetImagePosition();
 
       setTimeout(function () {
-        dom.pinImage?.classList.remove("pf-animate-in");
+        dom.pinImage
+          ?.classList.remove(
+            "pf-animate-in"
+          );
       }, 500);
     };
 
@@ -275,112 +259,150 @@
       dom.pinImage.classList.add("hidden");
     }
 
-    if (dom.pinPlaceholder) {
-      dom.pinPlaceholder.classList.remove("hidden");
-    }
+    dom.pinPlaceholder
+      ?.classList.remove("hidden");
 
-    if (dom.removeImageBtn) {
-      dom.removeImageBtn.classList.add("hidden");
-    }
+    dom.removeImageBtn
+      ?.classList.add("hidden");
 
-    if (dom.fileInput) {
+    if (dom.fileInput)
       dom.fileInput.value = "";
-    }
 
     resetImagePosition();
   }
 
 
   function setupUpload() {
-    if (dom.fileInput) {
-      dom.fileInput.addEventListener("change", function (event) {
-        const file = event.target.files?.[0];
+    dom.fileInput
+      ?.addEventListener(
+        "change",
+        function (event) {
+          const file =
+            event.target.files?.[0];
 
-        if (file) {
-          handleFile(file);
+          if (file)
+            handleFile(file);
         }
-      });
-    }
+      );
+
 
     if (dom.dropzone) {
-      ["dragenter", "dragover"].forEach(function (eventName) {
-        dom.dropzone.addEventListener(eventName, function (event) {
-          event.preventDefault();
-          event.stopPropagation();
 
-          dom.dropzone.classList.add("is-dragover");
+      ["dragenter", "dragover"]
+        .forEach(function (name) {
+          dom.dropzone.addEventListener(
+            name,
+            function (event) {
+              event.preventDefault();
+              event.stopPropagation();
+
+              dom.dropzone.classList.add(
+                "is-dragover"
+              );
+            }
+          );
         });
-      });
 
-      ["dragleave", "drop"].forEach(function (eventName) {
-        dom.dropzone.addEventListener(eventName, function (event) {
-          event.preventDefault();
-          event.stopPropagation();
 
-          dom.dropzone.classList.remove("is-dragover");
+      ["dragleave", "drop"]
+        .forEach(function (name) {
+          dom.dropzone.addEventListener(
+            name,
+            function (event) {
+              event.preventDefault();
+              event.stopPropagation();
+
+              dom.dropzone.classList.remove(
+                "is-dragover"
+              );
+            }
+          );
         });
-      });
 
-      dom.dropzone.addEventListener("drop", function (event) {
-        const file = event.dataTransfer?.files?.[0];
 
-        if (file) {
-          handleFile(file);
+      dom.dropzone.addEventListener(
+        "drop",
+        function (event) {
+          const file =
+            event.dataTransfer
+              ?.files?.[0];
+
+          if (file)
+            handleFile(file);
         }
-      });
+      );
     }
 
-    dom.removeImageBtn?.addEventListener("click", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
 
-      removeImage();
-    });
+    dom.removeImageBtn
+      ?.addEventListener(
+        "click",
+        function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          removeImage();
+        }
+      );
   }
 
 
   /* ==========================================================================
-     7. IMAGE SLIDERS
+     7. IMAGE CONTROLS
      ========================================================================== */
 
   function setupImageControls() {
-    dom.zoomSlider?.addEventListener("input", function (event) {
-      state.zoom = Number(event.target.value);
 
-      if (dom.zoomValue) {
-        dom.zoomValue.textContent = `${state.zoom}%`;
-      }
+    dom.zoomSlider
+      ?.addEventListener(
+        "input",
+        function (event) {
+          state.zoom =
+            Number(event.target.value);
 
-      applyImageTransform();
-    });
+          if (dom.zoomValue) {
+            dom.zoomValue.textContent =
+              `${state.zoom}%`;
+          }
 
-
-    dom.posXSlider?.addEventListener("input", function (event) {
-      state.posX = Number(event.target.value);
-
-      applyImageTransform();
-    });
-
-
-    dom.posYSlider?.addEventListener("input", function (event) {
-      /*
-        THIS is the Position Y fix.
-
-        It changes the same transform used by the visible image,
-        rather than relying on object-position alone.
-      */
-
-      state.posY = Number(event.target.value);
-
-      applyImageTransform();
-    });
+          applyImageTransform();
+        }
+      );
 
 
-    dom.resetPositionBtn?.addEventListener("click", function (event) {
-      event.preventDefault();
+    dom.posXSlider
+      ?.addEventListener(
+        "input",
+        function (event) {
+          state.posX =
+            Number(event.target.value);
 
-      resetImagePosition();
-    });
+          applyImageTransform();
+        }
+      );
+
+
+    dom.posYSlider
+      ?.addEventListener(
+        "input",
+        function (event) {
+          state.posY =
+            Number(event.target.value);
+
+          applyImageTransform();
+        }
+      );
+
+
+    dom.resetPositionBtn
+      ?.addEventListener(
+        "click",
+        function (event) {
+          event.preventDefault();
+
+          resetImagePosition();
+        }
+      );
   }
 
 
@@ -407,36 +429,48 @@
 
 
   function setupText() {
-    dom.headlineInput?.addEventListener("input", function (event) {
-      state.headline = event.target.value;
 
-      renderHeadline();
+    dom.headlineInput
+      ?.addEventListener(
+        "input",
+        function (event) {
+          state.headline =
+            event.target.value;
 
-      if (dom.headlineCount) {
-        dom.headlineCount.textContent =
-          `${state.headline.length}/60`;
-      }
-    });
+          renderHeadline();
+
+          if (dom.headlineCount) {
+            dom.headlineCount.textContent =
+              `${state.headline.length}/60`;
+          }
+        }
+      );
 
 
-    dom.subheadlineInput?.addEventListener("input", function (event) {
-      state.subheadline = event.target.value;
+    dom.subheadlineInput
+      ?.addEventListener(
+        "input",
+        function (event) {
+          state.subheadline =
+            event.target.value;
 
-      renderSubheadline();
+          renderSubheadline();
 
-      if (dom.subheadlineCount) {
-        dom.subheadlineCount.textContent =
-          `${state.subheadline.length}/80`;
-      }
-    });
+          if (dom.subheadlineCount) {
+            dom.subheadlineCount.textContent =
+              `${state.subheadline.length}/80`;
+          }
+        }
+      );
   }
 
 
   /* ==========================================================================
-     9. OVERLAY POSITION
+     9. OVERLAY
      ========================================================================== */
 
   const OVERLAY_CLASSES = {
+
     bottom: {
       wrap:
         "absolute inset-x-0 bottom-0 p-[6%] flex flex-col gap-2 text-left items-start z-10",
@@ -464,7 +498,10 @@
 
 
   function updateStylePill() {
-    if (!dom.styleToggle || !dom.styleTogglePill) return;
+    if (
+      !dom.styleToggle ||
+      !dom.styleTogglePill
+    ) return;
 
     const active =
       dom.styleToggle.querySelector(
@@ -473,22 +510,28 @@
 
     if (!active) return;
 
-    const parentRect =
-      dom.styleToggle.getBoundingClientRect();
+    const parent =
+      dom.styleToggle
+        .getBoundingClientRect();
 
-    const activeRect =
+    const button =
       active.getBoundingClientRect();
 
     dom.styleTogglePill.style.width =
-      `${activeRect.width}px`;
+      `${button.width}px`;
 
     dom.styleTogglePill.style.transform =
-      `translateX(${activeRect.left - parentRect.left - 4}px)`;
+      `translateX(${
+        button.left -
+        parent.left -
+        4
+      }px)`;
   }
 
 
   function setOverlayStyle(style) {
-    if (!OVERLAY_CLASSES[style]) return;
+    if (!OVERLAY_CLASSES[style])
+      return;
 
     state.style = style;
 
@@ -511,56 +554,80 @@
         );
       });
 
-    requestAnimationFrame(updateStylePill);
+    requestAnimationFrame(
+      updateStylePill
+    );
   }
 
 
   function setupOverlay() {
-    dom.styleToggle?.addEventListener("click", function (event) {
-      const button =
-        event.target.closest(".style-btn");
 
-      if (!button) return;
+    dom.styleToggle
+      ?.addEventListener(
+        "click",
+        function (event) {
+          const button =
+            event.target.closest(
+              ".style-btn"
+            );
 
-      setOverlayStyle(button.dataset.style);
-    });
+          if (!button) return;
 
-    window.addEventListener("resize", updateStylePill);
+          setOverlayStyle(
+            button.dataset.style
+          );
+        }
+      );
+
+
+    window.addEventListener(
+      "resize",
+      updateStylePill
+    );
   }
 
 
   /* ==========================================================================
-     10. CUSTOMIZE ACCORDION
+     10. CUSTOMIZE
      ========================================================================== */
 
   function setCustomizeOpen(open) {
     state.isCustomizingOpen = open;
 
-    dom.customizePanel?.classList.toggle(
-      "is-open",
-      open
-    );
+    dom.customizePanel
+      ?.classList.toggle(
+        "is-open",
+        open
+      );
 
-    dom.customizeChevron?.classList.toggle(
-      "is-open",
-      open
-    );
+    dom.customizeChevron
+      ?.classList.toggle(
+        "is-open",
+        open
+      );
 
-    dom.customizeToggleBtn?.setAttribute(
-      "aria-expanded",
-      open ? "true" : "false"
-    );
+    dom.customizeToggleBtn
+      ?.setAttribute(
+        "aria-expanded",
+        open
+          ? "true"
+          : "false"
+      );
   }
 
 
   function setupCustomize() {
     setCustomizeOpen(false);
 
-    dom.customizeToggleBtn?.addEventListener("click", function () {
-      setCustomizeOpen(
-        !state.isCustomizingOpen
+    dom.customizeToggleBtn
+      ?.addEventListener(
+        "click",
+        function () {
+          setCustomizeOpen(
+            !state.isCustomizingOpen
+          );
+        }
       );
-    });
   }
 
 
@@ -573,54 +640,73 @@
 
     dom.pinHeadline.style.fontFamily =
       FONT_FAMILIES[state.font] ||
-      FONT_FAMILIES["league-spartan"];
+      FONT_FAMILIES[
+        "league-spartan"
+      ];
   }
 
 
   function setupFonts() {
-    dom.fontSelector?.addEventListener("click", function (event) {
-      const chip =
-        event.target.closest(".font-chip");
 
-      if (!chip) return;
+    dom.fontSelector
+      ?.addEventListener(
+        "click",
+        function (event) {
 
-      const font =
-        chip.dataset.font;
+          const chip =
+            event.target.closest(
+              ".font-chip"
+            );
 
-      if (!FONT_FAMILIES[font]) return;
+          if (!chip) return;
 
-      state.font = font;
+          const font =
+            chip.dataset.font;
 
-      dom.fontSelector
-        .querySelectorAll(".font-chip")
-        .forEach(function (item) {
-          item.classList.toggle(
-            "is-active",
-            item === chip
-          );
-        });
+          if (!FONT_FAMILIES[font])
+            return;
 
-      applyFont();
-    });
+          state.font = font;
+
+          dom.fontSelector
+            .querySelectorAll(
+              ".font-chip"
+            )
+            .forEach(
+              function (item) {
+                item.classList.toggle(
+                  "is-active",
+                  item === chip
+                );
+              }
+            );
+
+          applyFont();
+        }
+      );
   }
 
 
   /* ==========================================================================
-     12. HEADLINE COLOR
+     12. COLOR
      ========================================================================== */
 
   function applyColor(color) {
     state.color = color;
 
     if (dom.pinHeadline) {
-      dom.pinHeadline.style.color = color;
+      dom.pinHeadline.style.color =
+        color;
     }
   }
 
 
   function setActiveColor(target) {
+
     dom.colorSelector
-      ?.querySelectorAll(".color-swatch")
+      ?.querySelectorAll(
+        ".color-swatch"
+      )
       .forEach(function (item) {
         item.classList.toggle(
           "is-active",
@@ -631,31 +717,48 @@
 
 
   function setupColors() {
-    dom.colorSelector?.addEventListener("click", function (event) {
-      const swatch =
-        event.target.closest(
-          ".color-swatch:not(.color-swatch--custom)"
-        );
 
-      if (!swatch) return;
+    dom.colorSelector
+      ?.addEventListener(
+        "click",
+        function (event) {
 
-      const color =
-        swatch.dataset.color;
+          const swatch =
+            event.target.closest(
+              ".color-swatch:not(.color-swatch--custom)"
+            );
 
-      if (!color) return;
+          if (!swatch) return;
 
-      applyColor(color);
-      setActiveColor(swatch);
-    });
+          const color =
+            swatch.dataset.color;
+
+          if (!color) return;
+
+          applyColor(color);
+          setActiveColor(swatch);
+        }
+      );
 
 
-    dom.customColorInput?.addEventListener("input", function (event) {
-      applyColor(event.target.value);
+    dom.customColorInput
+      ?.addEventListener(
+        "input",
+        function (event) {
 
-      if (dom.customColorSwatch) {
-        setActiveColor(dom.customColorSwatch);
-      }
-    });
+          applyColor(
+            event.target.value
+          );
+
+          if (
+            dom.customColorSwatch
+          ) {
+            setActiveColor(
+              dom.customColorSwatch
+            );
+          }
+        }
+      );
   }
 
 
@@ -664,69 +767,110 @@
      ========================================================================== */
 
   function renderCTA() {
-    if (!dom.pinCtaWrap || !dom.pinCtaLabel) return;
+
+    if (
+      !dom.pinCtaWrap ||
+      !dom.pinCtaLabel
+    ) return;
+
 
     if (state.ctaType === "none") {
-      dom.pinCtaWrap.classList.add("hidden");
+
+      dom.pinCtaWrap
+        .classList.add("hidden");
+
       return;
     }
 
-    dom.pinCtaWrap.classList.remove("hidden");
 
-    let text = state.ctaType;
+    dom.pinCtaWrap
+      .classList.remove("hidden");
 
-    if (state.ctaType === "custom") {
+
+    let text =
+      state.ctaType;
+
+
+    if (
+      state.ctaType === "custom"
+    ) {
+
       text =
         state.customCta.trim() ||
         "SHOP NOW";
     }
 
-    dom.pinCtaLabel.textContent = text;
+
+    dom.pinCtaLabel.textContent =
+      text;
   }
 
 
   function setupCTA() {
-    dom.ctaSelect?.addEventListener("change", function (event) {
-      state.ctaType = event.target.value;
 
-      if (dom.ctaCustomInput) {
-        dom.ctaCustomInput.classList.toggle(
-          "hidden",
-          state.ctaType !== "custom"
-        );
-      }
+    dom.ctaSelect
+      ?.addEventListener(
+        "change",
+        function (event) {
 
-      renderCTA();
-    });
+          state.ctaType =
+            event.target.value;
 
 
-    dom.ctaCustomInput?.addEventListener("input", function (event) {
-      state.customCta =
-        event.target.value;
+          if (
+            dom.ctaCustomInput
+          ) {
 
-      renderCTA();
-    });
+            dom.ctaCustomInput
+              .classList.toggle(
+                "hidden",
+                state.ctaType !==
+                  "custom"
+              );
+          }
+
+
+          renderCTA();
+        }
+      );
+
+
+    dom.ctaCustomInput
+      ?.addEventListener(
+        "input",
+        function (event) {
+
+          state.customCta =
+            event.target.value;
+
+          renderCTA();
+        }
+      );
   }
 
 
   /* ==========================================================================
-     14. MOBILE FLOATING LIVE PREVIEW
+     14. MOBILE FLOATING PREVIEW — FIXED
      ========================================================================== */
 
   let floatingTicking = false;
 
 
-  function updateMobileFloatingPreview() {
+  function updateMobilePreview() {
     floatingTicking = false;
 
     if (!dom.pinCard) return;
 
+
     /*
-      Desktop:
-      never use floating preview.
+      Never float on desktop.
     */
 
-    if (window.innerWidth >= CONFIG.mobileBreakpoint) {
+    if (
+      window.innerWidth >=
+      CONFIG.mobileBreakpoint
+    ) {
+
       dom.pinCard.classList.remove(
         "pf-mobile-floating"
       );
@@ -734,34 +878,46 @@
       return;
     }
 
-    /*
-      Find controls section.
 
-      Current index:
-      pinCard lives in the second section.
-      The first section is the editor.
+    /*
+      IMPORTANT:
+
+      We no longer calculate from the editor section.
+
+      Instead, we calculate from the ORIGINAL
+      preview's parent section.
+
+      Once the normal preview has scrolled above
+      the header, the card becomes fixed.
+
+      Because position:fixed removes it from normal
+      layout, we use the preview SECTION itself as
+      our stable reference.
     */
 
-    const editorSection =
-      document.querySelector(
-        "main > div > section:first-child"
-      );
+    const previewSection =
+      dom.pinCard.closest("section");
 
-    if (!editorSection) return;
+    if (!previewSection) return;
 
-    const editorRect =
-      editorSection.getBoundingClientRect();
+
+    const rect =
+      previewSection
+        .getBoundingClientRect();
+
 
     /*
-      Float preview once editor controls reach the top
-      area of the viewport.
+      Start floating when the preview section
+      has moved above the visible header.
 
-      Stop floating once user has passed the editor.
+      Keep it floating while user is further
+      down the page.
     */
 
     const shouldFloat =
-      editorRect.top < CONFIG.mobileFloatingTop &&
-      editorRect.bottom > 180;
+      rect.bottom <
+      CONFIG.floatingTop + 120;
+
 
     dom.pinCard.classList.toggle(
       "pf-mobile-floating",
@@ -770,45 +926,46 @@
   }
 
 
-  function requestFloatingUpdate() {
+  function requestMobilePreviewUpdate() {
+
     if (floatingTicking) return;
 
     floatingTicking = true;
 
     requestAnimationFrame(
-      updateMobileFloatingPreview
+      updateMobilePreview
     );
   }
 
 
   function setupMobilePreview() {
+
     window.addEventListener(
       "scroll",
-      requestFloatingUpdate,
+      requestMobilePreviewUpdate,
       { passive: true }
     );
+
 
     window.addEventListener(
       "resize",
-      requestFloatingUpdate,
+      requestMobilePreviewUpdate,
       { passive: true }
     );
 
-    /*
-      Important for iPhone:
-      visualViewport can change when Safari's
-      address bar expands/collapses.
-    */
 
     if (window.visualViewport) {
-      window.visualViewport.addEventListener(
-        "resize",
-        requestFloatingUpdate,
-        { passive: true }
-      );
+
+      window.visualViewport
+        .addEventListener(
+          "resize",
+          requestMobilePreviewUpdate,
+          { passive: true }
+        );
     }
 
-    updateMobileFloatingPreview();
+
+    requestMobilePreviewUpdate();
   }
 
 
@@ -817,13 +974,16 @@
      ========================================================================== */
 
   function setupHeader() {
+
     window.addEventListener(
       "scroll",
       function () {
-        dom.siteHeader?.classList.toggle(
-          "is-scrolled",
-          window.scrollY > 8
-        );
+
+        dom.siteHeader
+          ?.classList.toggle(
+            "is-scrolled",
+            window.scrollY > 8
+          );
       },
       { passive: true }
     );
@@ -831,62 +991,83 @@
 
 
   /* ==========================================================================
-     16. EXPORT
-     Exact 1000 × 1500
+     16. EXPORT HELPERS
      ========================================================================== */
 
   function makeFilename() {
+
     let name =
       state.headline.trim() ||
       "pinforge-pin";
 
+
     name = name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
+      .replace(
+        /[^a-z0-9]+/g,
+        "-"
+      )
+      .replace(
+        /^-+|-+$/g,
+        ""
+      )
       .substring(0, 50);
 
-    return `${name}-1000x1500.png`;
+
+    return (
+      `${name}-1000x1500.png`
+    );
   }
 
 
-  function setExportButtonLoading() {
+  function setExportLoading() {
+
     if (!dom.downloadBtn) return;
 
-    dom.downloadBtn.disabled = true;
+
+    dom.downloadBtn.disabled =
+      true;
+
 
     dom.downloadBtn.innerHTML = `
-      <svg class="pf-spin"
+      <svg
+        class="pf-spin"
         width="16"
         height="16"
         viewBox="0 0 24 24"
         fill="none"
         stroke="white"
         stroke-width="2">
+
         <circle
           cx="12"
           cy="12"
           r="9"
           stroke-opacity="0.3"
         />
+
         <path
           d="M21 12a9 9 0 0 0-9-9"
         />
       </svg>
 
       <span>
-        Generating 1000×1500...
+        Generating...
       </span>
     `;
   }
 
 
-  function setExportButtonSuccess() {
+  function setExportSuccess() {
+
     if (!dom.downloadBtn) return;
 
-    dom.downloadBtn.classList.add(
-      "pf-success"
-    );
+
+    dom.downloadBtn
+      .classList.add(
+        "pf-success"
+      );
+
 
     dom.downloadBtn.innerHTML = `
       <svg
@@ -898,22 +1079,33 @@
         stroke-width="2.5"
         stroke-linecap="round"
         stroke-linejoin="round">
-        <path d="M5 13l4 4L19 7"/>
+
+        <path
+          d="M5 13l4 4L19 7"
+        />
       </svg>
 
-      <span>Pin Ready!</span>
+      <span>
+        Pin Ready!
+      </span>
     `;
   }
 
 
   function resetExportButton() {
+
     if (!dom.downloadBtn) return;
 
-    dom.downloadBtn.disabled = false;
 
-    dom.downloadBtn.classList.remove(
-      "pf-success"
-    );
+    dom.downloadBtn.disabled =
+      false;
+
+
+    dom.downloadBtn
+      .classList.remove(
+        "pf-success"
+      );
+
 
     dom.downloadBtn.innerHTML = `
       <svg
@@ -925,37 +1117,103 @@
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round">
-        <path d="M12 16V4M12 16l-4-4M12 16l4-4"/>
-        <path d="M4 20h16"/>
+
+        <path
+          d="M12 16V4M12 16l-4-4M12 16l4-4"
+        />
+
+        <path
+          d="M4 20h16"
+        />
       </svg>
 
-      <span>Download PNG</span>
+      <span>
+        Download PNG
+      </span>
     `;
   }
 
 
-  async function waitForCloneImage(clone) {
-    const image =
-      clone.querySelector("#pinImage");
+  function waitForImage(image) {
 
-    if (!image || !image.src) return;
+    if (
+      !image ||
+      !image.src
+    ) {
 
-    if (image.complete) {
-      try {
-        await image.decode();
-      } catch (_) {}
-
-      return;
+      return Promise.resolve();
     }
 
-    await new Promise(function (resolve) {
-      image.onload = resolve;
-      image.onerror = resolve;
-    });
+
+    if (
+      image.complete &&
+      image.naturalWidth > 0
+    ) {
+
+      if (image.decode) {
+
+        return image
+          .decode()
+          .catch(
+            function () {}
+          );
+      }
+
+
+      return Promise.resolve();
+    }
+
+
+    return new Promise(
+      function (resolve) {
+
+        image.onload =
+          function () {
+            resolve();
+          };
+
+
+        image.onerror =
+          function () {
+            resolve();
+          };
+      }
+    );
   }
 
 
+  function canvasToBlob(canvas) {
+
+    return new Promise(
+      function (resolve, reject) {
+
+        canvas.toBlob(
+          function (blob) {
+
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(
+                new Error(
+                  "Could not create PNG."
+                )
+              );
+            }
+          },
+
+          "image/png"
+        );
+      }
+    );
+  }
+
+
+  /* ==========================================================================
+     17. EXPORT
+     ========================================================================== */
+
   async function exportPin() {
+
     if (
       state.isExporting ||
       !dom.pinCard ||
@@ -964,13 +1222,16 @@
       return;
     }
 
+
     state.isExporting = true;
 
-    setExportButtonLoading();
+    setExportLoading();
+
 
     try {
+
       /*
-        Wait for Google Fonts.
+        Wait for fonts.
       */
 
       if (document.fonts?.ready) {
@@ -979,107 +1240,132 @@
 
 
       /*
-        Clone the current preview.
-
-        IMPORTANT:
-        We remove the mobile floating class from the clone.
+        Clone preview.
       */
 
       const clone =
         dom.pinCard.cloneNode(true);
 
+
       clone.classList.remove(
         "pf-mobile-floating"
       );
 
-      clone.id = "pinCardExport";
+
+      clone.id =
+        "pinCardExport";
 
 
       /*
-        Force exact export dimensions.
+        Exact export box.
       */
 
-      clone.style.position = "relative";
-      clone.style.top = "auto";
-      clone.style.right = "auto";
-      clone.style.left = "auto";
+      Object.assign(
+        clone.style,
+        {
+          position: "relative",
+          top: "auto",
+          right: "auto",
+          bottom: "auto",
+          left: "auto",
 
-      clone.style.width =
-        `${CONFIG.exportWidth}px`;
+          width:
+            `${CONFIG.exportWidth}px`,
 
-      clone.style.height =
-        `${CONFIG.exportHeight}px`;
+          height:
+            `${CONFIG.exportHeight}px`,
 
-      clone.style.minWidth =
-        `${CONFIG.exportWidth}px`;
+          minWidth:
+            `${CONFIG.exportWidth}px`,
 
-      clone.style.maxWidth =
-        `${CONFIG.exportWidth}px`;
+          maxWidth:
+            `${CONFIG.exportWidth}px`,
 
-      clone.style.aspectRatio = "auto";
+          aspectRatio:
+            "2 / 3",
 
-      clone.style.margin = "0";
+          margin: "0",
 
-      clone.style.borderRadius = "0";
+          borderRadius: "0",
 
-      clone.style.boxShadow = "none";
+          boxShadow: "none",
 
-      clone.style.transform = "none";
+          transform: "none",
+
+          transition: "none",
+        }
+      );
 
 
       /*
-        EXPORT IMAGE FIX.
+        IMAGE
 
-        We reproduce the SAME 120% overscan dimensions
-        as the live preview.
-
-        This prevents the exported product photo
-        from becoming stretched / squashed.
+        Same geometry as live preview:
+        120% x 120%
+        -10% offset
+        object-fit cover
+        SAME transform.
       */
 
       const cloneImage =
-        clone.querySelector("#pinImage");
+        clone.querySelector(
+          "#pinImage"
+        );
+
 
       if (cloneImage) {
-        cloneImage.style.position = "absolute";
 
-        cloneImage.style.width = "120%";
-        cloneImage.style.height = "120%";
+        Object.assign(
+          cloneImage.style,
+          {
+            position: "absolute",
 
-        cloneImage.style.left = "-10%";
-        cloneImage.style.top = "-10%";
+            width: "120%",
+            height: "120%",
 
-        cloneImage.style.maxWidth = "none";
+            left: "-10%",
+            top: "-10%",
 
-        cloneImage.style.objectFit = "cover";
-        cloneImage.style.objectPosition = "50% 50%";
+            maxWidth: "none",
 
-        cloneImage.style.transform =
-          getImageTransform();
+            objectFit: "cover",
+            objectPosition: "50% 50%",
 
-        cloneImage.style.transformOrigin =
-          "center center";
+            transform:
+              getImageTransform(),
+
+            transformOrigin:
+              "center center",
+
+            transition: "none",
+          }
+        );
       }
 
 
       /*
-        Export text sizes.
-
-        Visible preview uses responsive CSS.
-        Export needs explicit sizes because it is
-        rendered at 1000px wide offscreen.
+        Text sizes for 1000px width.
       */
 
       const cloneHeadline =
-        clone.querySelector("#pinHeadline");
+        clone.querySelector(
+          "#pinHeadline"
+        );
+
 
       if (cloneHeadline) {
-        cloneHeadline.style.fontSize = "72px";
-        cloneHeadline.style.lineHeight = "1.08";
+
+        cloneHeadline.style.fontSize =
+          "72px";
+
+        cloneHeadline.style.lineHeight =
+          "1.08";
 
         cloneHeadline.style.fontFamily =
           FONT_FAMILIES[state.font] ||
-          FONT_FAMILIES["league-spartan"];
+          FONT_FAMILIES[
+            "league-spartan"
+          ];
 
         cloneHeadline.style.color =
           state.color;
@@ -1087,64 +1373,99 @@
 
 
       const cloneSubheadline =
-        clone.querySelector("#pinSubheadline");
+        clone.querySelector(
+          "#pinSubheadline"
+        );
+
 
       if (cloneSubheadline) {
-        cloneSubheadline.style.fontSize = "34px";
-        cloneSubheadline.style.lineHeight = "1.25";
+
+        cloneSubheadline.style.fontSize =
+          "34px";
+
+        cloneSubheadline.style.lineHeight =
+          "1.25";
       }
 
 
       /*
-        CTA EXPORT FIX.
-
-        Do not hide or rebuild the CTA.
-        We preserve the exact current selection,
-        including LINK IN BIO.
+        CTA — explicitly rebuild its current state.
       */
 
       const cloneCtaWrap =
-        clone.querySelector("#pinCtaWrap");
+        clone.querySelector(
+          "#pinCtaWrap"
+        );
+
 
       const cloneCtaLabel =
-        clone.querySelector("#pinCtaLabel");
+        clone.querySelector(
+          "#pinCtaLabel"
+        );
+
+
+      let ctaText =
+        state.ctaType;
+
+
+      if (
+        state.ctaType === "custom"
+      ) {
+
+        ctaText =
+          state.customCta.trim() ||
+          "SHOP NOW";
+      }
+
 
       if (cloneCtaWrap) {
-        if (state.ctaType === "none") {
-          cloneCtaWrap.style.display = "none";
+
+        if (
+          state.ctaType === "none"
+        ) {
+
+          cloneCtaWrap.style.display =
+            "none";
+
         } else {
-          cloneCtaWrap.style.display = "block";
+
+          cloneCtaWrap.style.display =
+            "block";
+
+          cloneCtaWrap
+            .classList.remove(
+              "hidden"
+            );
         }
       }
 
-      if (cloneCtaLabel) {
-        let ctaText = state.ctaType;
 
-        if (state.ctaType === "custom") {
-          ctaText =
-            state.customCta.trim() ||
-            "SHOP NOW";
-        }
+      if (
+        cloneCtaLabel &&
+        state.ctaType !== "none"
+      ) {
 
         cloneCtaLabel.textContent =
           ctaText;
 
         cloneCtaLabel.style.fontSize =
           "24px";
+
+        cloneCtaLabel.style.lineHeight =
+          "1";
       }
 
 
-      /*
-        Make CTA itself proportional to export.
-      */
-
       if (cloneCtaWrap) {
+
         const badge =
           cloneCtaWrap.querySelector(
-            "span.inline-flex"
+            ".inline-flex"
           );
 
+
         if (badge) {
+
           badge.style.padding =
             "14px 24px";
 
@@ -1154,87 +1475,210 @@
           badge.style.gap =
             "10px";
         }
+
+
+        const dot =
+          cloneCtaWrap.querySelector(
+            ".rounded-full.bg-accent"
+          );
+
+
+        if (dot) {
+
+          dot.style.width =
+            "12px";
+
+          dot.style.height =
+            "12px";
+
+          dot.style.minWidth =
+            "12px";
+        }
       }
 
 
       /*
-        Put export clone into ghost.
+        Add clone to export host.
       */
 
-      dom.exportGhost.innerHTML = "";
+      dom.exportGhost.innerHTML =
+        "";
 
-      dom.exportGhost.style.width =
-        `${CONFIG.exportWidth}px`;
 
-      dom.exportGhost.style.height =
-        `${CONFIG.exportHeight}px`;
+      Object.assign(
+        dom.exportGhost.style,
+        {
+          width:
+            `${CONFIG.exportWidth}px`,
 
-      dom.exportGhost.appendChild(clone);
+          height:
+            `${CONFIG.exportHeight}px`,
+        }
+      );
+
+
+      dom.exportGhost
+        .appendChild(clone);
 
 
       /*
-        Wait for image decode AFTER clone enters DOM.
+        Wait for image.
       */
 
-      await waitForCloneImage(clone);
+      await waitForImage(
+        cloneImage
+      );
 
 
       /*
-        Let browser finish layout.
+        Allow layout to settle.
       */
 
-      await new Promise(function (resolve) {
-        requestAnimationFrame(function () {
-          requestAnimationFrame(resolve);
-        });
-      });
+      await new Promise(
+        function (resolve) {
+
+          requestAnimationFrame(
+            function () {
+
+              requestAnimationFrame(
+                resolve
+              );
+            }
+          );
+        }
+      );
 
 
-      if (typeof html2canvas === "undefined") {
+      if (
+        typeof html2canvas ===
+        "undefined"
+      ) {
+
         throw new Error(
-          "html2canvas is not loaded."
+          "html2canvas library missing."
         );
       }
 
 
       /*
-        Exact 1000 × 1500 output.
+        Render.
       */
 
       const canvas =
-        await html2canvas(clone, {
-          width: CONFIG.exportWidth,
-          height: CONFIG.exportHeight,
-          scale: 1,
+        await html2canvas(
+          clone,
+          {
+            width:
+              CONFIG.exportWidth,
 
-          useCORS: true,
+            height:
+              CONFIG.exportHeight,
 
-          backgroundColor: null,
+            scale: 1,
 
-          logging: false,
+            useCORS: true,
 
-          windowWidth:
-            CONFIG.exportWidth,
+            allowTaint: false,
 
-          windowHeight:
-            CONFIG.exportHeight,
-        });
+            backgroundColor:
+              "#ffffff",
+
+            logging: false,
+
+            scrollX: 0,
+            scrollY: 0,
+
+            windowWidth:
+              CONFIG.exportWidth,
+
+            windowHeight:
+              CONFIG.exportHeight,
+          }
+        );
 
 
       /*
-        Export file.
+        Sanity check.
       */
+
+      if (
+        canvas.width !==
+          CONFIG.exportWidth ||
+        canvas.height !==
+          CONFIG.exportHeight
+      ) {
+
+        throw new Error(
+          `Wrong export size: ${canvas.width}x${canvas.height}`
+        );
+      }
+
+
+      /*
+        Convert to Blob.
+
+        This is significantly better than a gigantic
+        data URL on iPhone Safari.
+      */
+
+      const blob =
+        await canvasToBlob(canvas);
+
 
       const filename =
         makeFilename();
 
 
-      /*
-        iPhone/iPad Safari:
-        opening the generated image is more reliable
-        than relying on the download attribute.
+      const blobUrl =
+        URL.createObjectURL(blob);
 
-        User can then Save Image / Save to Files.
+
+      /*
+        DOWNLOAD STRATEGY
+
+        Try normal download FIRST on every browser,
+        including modern iOS Safari.
+
+        Modern Safari supports download for blob URLs
+        much better than the old window.open approach.
+
+        If iOS ignores download, the blob URL is opened
+        in the same tab after a short delay.
+      */
+
+      const link =
+        document.createElement("a");
+
+
+      link.href =
+        blobUrl;
+
+
+      link.download =
+        filename;
+
+
+      link.style.display =
+        "none";
+
+
+      document.body
+        .appendChild(link);
+
+
+      link.click();
+
+
+      link.remove();
+
+
+      /*
+        iOS fallback.
+
+        Do NOT use window.open after async work:
+        Safari blocks it as a popup.
+
+        Same-tab navigation is not popup-blocked.
       */
 
       const isIOS =
@@ -1242,118 +1686,88 @@
           navigator.userAgent
         ) ||
         (
-          navigator.platform === "MacIntel" &&
+          navigator.platform ===
+            "MacIntel" &&
           navigator.maxTouchPoints > 1
         );
 
 
       if (isIOS) {
-        const dataUrl =
-          canvas.toDataURL(
-            "image/png",
-            1
-          );
 
-        const newWindow =
-          window.open();
+        /*
+          Give Safari a moment to honor the
+          download attribute.
 
-        if (newWindow) {
-          newWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <meta
-                  name="viewport"
-                  content="width=device-width,initial-scale=1"
-                >
+          If it doesn't, navigating to the PNG
+          still lets the user long-press / Save Image.
+        */
 
-                <title>
-                  ${filename}
-                </title>
+        setTimeout(
+          function () {
 
-                <style>
-                  html,
-                  body {
-                    margin: 0;
-                    padding: 0;
-                    background: #111827;
-                    min-height: 100%;
-                  }
+            /*
+              We intentionally DON'T revoke
+              the blob before this.
+            */
 
-                  body {
-                    display: flex;
-                    align-items: flex-start;
-                    justify-content: center;
-                  }
+            window.location.href =
+              blobUrl;
 
-                  img {
-                    display: block;
-                    width: 100%;
-                    height: auto;
-                    max-width: 1000px;
-                  }
-                </style>
-              </head>
-
-              <body>
-                <img
-                  src="${dataUrl}"
-                  alt="Pinterest Pin"
-                >
-              </body>
-            </html>
-          `);
-
-          newWindow.document.close();
-        } else {
-          window.location.href =
-            dataUrl;
-        }
+          },
+          450
+        );
 
       } else {
 
-        const dataUrl =
-          canvas.toDataURL(
-            "image/png",
-            1
-          );
-
-        const link =
-          document.createElement("a");
-
-        link.href = dataUrl;
-        link.download = filename;
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        link.remove();
+        setTimeout(
+          function () {
+            URL.revokeObjectURL(
+              blobUrl
+            );
+          },
+          10000
+        );
       }
 
 
-      dom.exportGhost.innerHTML = "";
+      dom.exportGhost.innerHTML =
+        "";
 
-      setExportButtonSuccess();
+
+      setExportSuccess();
 
 
-      setTimeout(function () {
-        resetExportButton();
+      setTimeout(
+        function () {
 
-        state.isExporting = false;
-      }, CONFIG.successDuration);
+          resetExportButton();
+
+          state.isExporting =
+            false;
+
+        },
+        CONFIG.successDuration
+      );
+
 
     } catch (error) {
+
       console.error(
         "PinForge export error:",
         error
       );
 
-      dom.exportGhost.innerHTML = "";
+
+      dom.exportGhost.innerHTML =
+        "";
+
 
       resetExportButton();
 
-      state.isExporting = false;
+
+      state.isExporting =
+        false;
+
 
       alert(
         "Export failed. Please try again."
@@ -1363,94 +1777,86 @@
 
 
   function setupExporter() {
-    dom.downloadBtn?.addEventListener(
-      "click",
-      exportPin
-    );
+
+    dom.downloadBtn
+      ?.addEventListener(
+        "click",
+        exportPin
+      );
   }
 
 
   /* ==========================================================================
-     17. INITIAL STATE
+     18. INITIAL STATE
      ========================================================================== */
 
   function setInitialState() {
-    /*
-      Read existing input values if any.
-    */
 
     state.headline =
-      dom.headlineInput?.value || "";
+      dom.headlineInput
+        ?.value || "";
+
 
     state.subheadline =
-      dom.subheadlineInput?.value || "";
+      dom.subheadlineInput
+        ?.value || "";
 
-
-    /*
-      Image defaults.
-    */
 
     resetImagePosition();
 
 
-    /*
-      Bottom overlay.
-    */
+    setOverlayStyle(
+      "bottom"
+    );
 
-    setOverlayStyle("bottom");
-
-
-    /*
-      League Spartan.
-    */
 
     state.font =
       "league-spartan";
 
+
     applyFont();
 
 
-    /*
-      White headline.
-    */
+    applyColor(
+      "#ffffff"
+    );
 
-    applyColor("#ffffff");
-
-
-    /*
-      CTA defaults to SHOP ON ETSY.
-    */
 
     state.ctaType =
-      dom.ctaSelect?.value ||
+      dom.ctaSelect
+        ?.value ||
       "SHOP ON ETSY";
+
+
+    state.customCta =
+      dom.ctaCustomInput
+        ?.value || "";
+
 
     renderCTA();
 
 
-    /*
-      Customize closed.
-    */
+    setCustomizeOpen(
+      false
+    );
 
-    setCustomizeOpen(false);
-
-
-    /*
-      Counters.
-    */
 
     if (dom.headlineCount) {
+
       dom.headlineCount.textContent =
         `${state.headline.length}/60`;
     }
 
+
     if (dom.subheadlineCount) {
+
       dom.subheadlineCount.textContent =
         `${state.subheadline.length}/80`;
     }
 
 
     renderHeadline();
+
     renderSubheadline();
 
 
@@ -1458,14 +1864,18 @@
       updateStylePill,
       100
     );
+
+
+    requestMobilePreviewUpdate();
   }
 
 
   /* ==========================================================================
-     18. INIT
+     19. INIT
      ========================================================================== */
 
   function init() {
+
     setupUpload();
 
     setupImageControls();
@@ -1490,18 +1900,25 @@
 
     setInitialState();
 
+
     console.log(
-      "PinForge stable build initialized ✨"
+      "PinForge FINAL stable build initialized ✨"
     );
   }
 
 
-  if (document.readyState === "loading") {
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
     document.addEventListener(
       "DOMContentLoaded",
       init
     );
+
   } else {
+
     init();
   }
 
