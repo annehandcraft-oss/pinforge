@@ -6,17 +6,12 @@
   <title>PinForge — Pinterest Pin Generator for Etsy Sellers</title>
   <meta name="description" content="Create scroll-stopping Pinterest pins for your Etsy shop in seconds." />
 
-  <!-- Fonts: League Spartan (display) + Inter (body/UI) -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=League+Spartan:wght@500;600;700;800&family=Playfair+Display:wght@600;700;800&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
 
-  <!--
-    Tailwind CDN build. The config below is framework wiring, not app logic —
-    it must run synchronously, before Tailwind scans the DOM for classes, so
-    it stays inline here rather than in app.js. All PinForge behavior lives
-    in app.js; all custom CSS lives in style.css.
-  -->
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -47,7 +42,7 @@
     };
   </script>
 
-  <!-- html2canvas: powers the "Download PNG" export -->
+  <!-- html2canvas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <link rel="stylesheet" href="style.css" />
@@ -55,145 +50,320 @@
 
 <body class="bg-canvas text-ink font-body antialiased min-h-screen">
 
-  <!-- ============ TOP NAV ============ -->
+  <!-- TOP NAV -->
   <header id="siteHeader" class="sticky top-0 z-40 bg-canvas/80 backdrop-blur-md border-b border-black/[0.06] transition-shadow duration-300 ease-premium">
     <div class="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center gap-2.5">
         <span class="w-8 h-8 rounded-[10px] bg-accent flex items-center justify-center shadow-popIn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4c3.1 0 5.6-2.5 5.6-5.6C22.9 5.7 18 2 12 2z" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </span>
         <span class="font-display font-extrabold text-lg tracking-tight">PinForge</span>
       </div>
+
       <span class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-ink/50 border border-black/[0.08] rounded-full px-3 py-1.5">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-        v0.1 — Pin Generator
+        v0.2 — Pin Generator
       </span>
     </div>
   </header>
 
-  <!-- ============ HERO / INTRO ============ -->
-  <section class="max-w-6xl mx-auto px-5 sm:px-8 pt-12 pb-8 sm:pt-16 sm:pb-10">
-    <p class="pf-fade-up text-accent font-semibold text-xs tracking-[0.16em] uppercase mb-4" style="animation-delay: 0.02s;">For Etsy sellers &amp; Pinterest marketers</p>
+  <!-- HERO -->
+  <section class="max-w-6xl mx-auto px-5 sm:px-8 pt-10 pb-6 sm:pt-14 sm:pb-8">
+    <p class="pf-fade-up text-accent font-semibold text-xs tracking-[0.16em] uppercase mb-3" style="animation-delay: 0.02s;">
+      For Etsy sellers &amp; Pinterest marketers
+    </p>
+
     <h1 class="pf-fade-up font-display font-extrabold text-[2.25rem] leading-[1.06] sm:text-[3.25rem] tracking-[-0.02em] max-w-xl" style="animation-delay: 0.08s;">
       Turn a product photo into a pin that sells.
     </h1>
-    <p class="pf-fade-up mt-4 text-ink/60 text-[15px] sm:text-[17px] max-w-md leading-relaxed" style="animation-delay: 0.14s;">
-      Upload your listing photo, add a headline, and export a perfectly-sized
-      1000×1500 Pinterest pin — ready in under a minute.
+
+    <p class="pf-fade-up mt-3 text-ink/60 text-[15px] sm:text-[17px] max-w-md leading-relaxed" style="animation-delay: 0.14s;">
+      Upload your listing photo, add a headline, customize typography and style, and export a 1000×1500 Pinterest pin.
     </p>
   </section>
 
-  <!-- ============ APP: EDITOR + PREVIEW ============ -->
+  <!-- APP -->
   <main class="max-w-6xl mx-auto px-5 sm:px-8 pb-24">
-    <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-7 lg:gap-10 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-7 lg:gap-10 items-start">
 
-      <!-- ---------- LEFT: CONTROLS CARD ---------- -->
+      <!-- CONTROLS -->
       <section class="pf-fade-up bg-white rounded-3xl shadow-card ring-1 ring-black/[0.03] p-6 sm:p-7 order-2 lg:order-1" style="animation-delay: 0.18s;">
 
         <!-- Upload -->
-        <div class="mb-7">
-          <label class="block text-sm font-semibold mb-3">Product image</label>
-          <div id="dropzone"
-               class="relative group cursor-pointer rounded-2xl border-2 border-dashed border-black/[0.12] hover:border-accent/60 focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/10 transition-all duration-300 ease-premium bg-canvas/60 hover:bg-canvas flex flex-col items-center justify-center text-center py-9 px-4">
+        <div class="mb-6">
+          <label class="block text-sm font-semibold mb-2.5">Product image</label>
+
+          <div
+            id="dropzone"
+            class="relative group cursor-pointer rounded-2xl border-2 border-dashed border-black/[0.12] hover:border-accent/60 focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/10 transition-all duration-300 ease-premium bg-canvas/60 hover:bg-canvas flex flex-col items-center justify-center text-center py-7 px-4"
+          >
             <input id="fileInput" type="file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" />
-            <div id="dropzoneIcon" class="w-11 h-11 rounded-full bg-accent/10 flex items-center justify-center mb-3 transition-transform duration-300 ease-premium group-hover:scale-110 group-hover:-translate-y-0.5">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B88A58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+
+            <div class="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center mb-2.5 transition-transform duration-300 ease-premium group-hover:scale-110 group-hover:-translate-y-0.5">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B88A58" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 16V4M12 4l-4 4M12 4l4 4"/>
+                <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+              </svg>
             </div>
+
             <p class="text-sm font-medium text-ink/80">Tap to upload, or drag &amp; drop</p>
-            <p class="text-xs text-ink/40 mt-1">PNG or JPG · up to 10MB</p>
+            <p class="text-xs text-ink/40 mt-0.5">PNG or JPG · up to 10MB</p>
           </div>
-          <button id="removeImageBtn" class="hidden mt-2.5 w-full text-xs font-medium text-ink/50 hover:text-red-500 transition-colors duration-200 py-1">
+
+          <button id="removeImageBtn" class="hidden mt-2 w-full text-xs font-medium text-ink/50 hover:text-red-500 transition-colors duration-200 py-1 text-center">
             Remove image
           </button>
         </div>
 
         <!-- Headline -->
-        <div class="mb-6">
-          <div class="flex items-center justify-between mb-3">
+        <div class="mb-5">
+          <div class="flex items-center justify-between mb-2">
             <label for="headlineInput" class="text-sm font-semibold">Headline</label>
             <span id="headlineCount" class="text-xs text-ink/35 tabular-nums">0/60</span>
           </div>
+
           <input
             id="headlineInput"
             type="text"
             maxlength="60"
             placeholder="Cozy Handmade Ceramic Mug"
-            class="w-full rounded-xl border border-black/[0.1] bg-white px-4 py-3 text-[15px] font-medium placeholder:text-ink/30 placeholder:font-normal hover:border-black/20 focus:outline-none focus:ring-4 focus:ring-accent/12 focus:border-accent/50 transition-all duration-200 ease-premium"
+            class="w-full rounded-xl border border-black/[0.1] bg-white px-4 py-2.5 text-[15px] font-medium placeholder:text-ink/30 placeholder:font-normal hover:border-black/20 focus:outline-none focus:ring-4 focus:ring-accent/12 focus:border-accent/50 transition-all duration-200 ease-premium"
           />
         </div>
 
         <!-- Subheadline -->
-        <div class="mb-7">
-          <div class="flex items-center justify-between mb-3">
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-2">
             <label for="subheadlineInput" class="text-sm font-semibold">Subheadline</label>
             <span id="subheadlineCount" class="text-xs text-ink/35 tabular-nums">0/80</span>
           </div>
+
           <input
             id="subheadlineInput"
             type="text"
             maxlength="80"
             placeholder="Handmade in small batches · Free shipping"
-            class="w-full rounded-xl border border-black/[0.1] bg-white px-4 py-3 text-[15px] placeholder:text-ink/30 hover:border-black/20 focus:outline-none focus:ring-4 focus:ring-accent/12 focus:border-accent/50 transition-all duration-200 ease-premium"
+            class="w-full rounded-xl border border-black/[0.1] bg-white px-4 py-2.5 text-[15px] placeholder:text-ink/30 hover:border-black/20 focus:outline-none focus:ring-4 focus:ring-accent/12 focus:border-accent/50 transition-all duration-200 ease-premium"
           />
         </div>
 
-        <!-- Accent color / layout toggle -->
-        <div class="mb-7">
-          <label class="block text-sm font-semibold mb-3">Overlay style</label>
+        <!-- Overlay -->
+        <div class="mb-6">
+          <label class="block text-sm font-semibold mb-2.5">Overlay position</label>
+
           <div id="styleToggle" class="relative grid grid-cols-3 gap-1 bg-canvas rounded-xl p-1 ring-1 ring-black/[0.05]">
             <span id="styleTogglePill" class="absolute inset-y-1 rounded-lg bg-ink shadow-sm transition-all duration-300 ease-premium" aria-hidden="true"></span>
-            <button data-style="bottom" class="style-btn is-active relative z-10 rounded-lg py-2.5 text-xs font-semibold transition-colors duration-200 ease-premium">Bottom</button>
-            <button data-style="center" class="style-btn relative z-10 rounded-lg py-2.5 text-xs font-semibold transition-colors duration-200 ease-premium">Center</button>
-            <button data-style="top" class="style-btn relative z-10 rounded-lg py-2.5 text-xs font-semibold transition-colors duration-200 ease-premium">Top</button>
+
+            <button data-style="bottom" class="style-btn is-active relative z-10 rounded-lg py-2 text-xs font-semibold transition-colors duration-200 ease-premium">
+              Bottom
+            </button>
+
+            <button data-style="center" class="style-btn relative z-10 rounded-lg py-2 text-xs font-semibold transition-colors duration-200 ease-premium">
+              Center
+            </button>
+
+            <button data-style="top" class="style-btn relative z-10 rounded-lg py-2 text-xs font-semibold transition-colors duration-200 ease-premium">
+              Top
+            </button>
+          </div>
+        </div>
+
+        <!-- CUSTOMIZE DESIGN -->
+        <div class="mb-7 border-t border-black/[0.06] pt-5">
+          <button
+            id="customizeToggleBtn"
+            type="button"
+            aria-expanded="false"
+            class="w-full flex items-center justify-between text-sm font-semibold text-ink/80 hover:text-ink transition-colors duration-200 py-1 focus:outline-none"
+          >
+            <span class="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              Customize design
+            </span>
+
+            <svg id="customizeChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ink/40 transition-transform duration-300 ease-premium">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+
+          <div id="customizePanel" class="mt-3">
+            <div class="pf-disclosure-inner space-y-5 pt-2">
+
+              <!-- Font -->
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-ink/50 mb-2">
+                  Headline Font
+                </label>
+
+                <div id="fontSelector" class="flex flex-wrap gap-2">
+                  <button data-font="league-spartan" class="font-chip is-active" style="font-family:'League Spartan',sans-serif;">Spartan</button>
+                  <button data-font="inter" class="font-chip" style="font-family:'Inter',sans-serif;">Inter</button>
+                  <button data-font="playfair-display" class="font-chip" style="font-family:'Playfair Display',serif;">Playfair</button>
+                  <button data-font="dm-serif-display" class="font-chip" style="font-family:'DM Serif Display',serif;">DM Serif</button>
+                  <button data-font="poppins" class="font-chip" style="font-family:'Poppins',sans-serif;">Poppins</button>
+                  <button data-font="caveat" class="font-chip" style="font-family:'Caveat',cursive;">Caveat</button>
+                </div>
+              </div>
+
+              <!-- Color -->
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-ink/50 mb-2">
+                  Headline Color
+                </label>
+
+                <div id="colorSelector" class="flex items-center flex-wrap gap-2.5">
+                  <button data-color="#ffffff" class="color-swatch is-active" style="background-color:#ffffff;" title="White"></button>
+                  <button data-color="#F8F6F2" class="color-swatch" style="background-color:#F8F6F2;" title="Cream"></button>
+                  <button data-color="#B88A58" class="color-swatch" style="background-color:#B88A58;" title="Accent Gold"></button>
+                  <button data-color="#1F2937" class="color-swatch" style="background-color:#1F2937;" title="Dark Ink"></button>
+                  <button data-color="#059669" class="color-swatch" style="background-color:#059669;" title="Emerald"></button>
+                  <button data-color="#D97706" class="color-swatch" style="background-color:#D97706;" title="Warm Amber"></button>
+                  <button data-color="#E11D48" class="color-swatch" style="background-color:#E11D48;" title="Rose"></button>
+
+                  <label id="customColorSwatch" class="color-swatch color-swatch--custom" title="Custom color">
+                    <input id="customColorInput" type="color" value="#FFFFFF" />
+                  </label>
+                </div>
+              </div>
+
+              <!-- CTA -->
+              <div>
+                <label for="ctaSelect" class="block text-xs font-semibold uppercase tracking-wider text-ink/50 mb-2">
+                  Call to Action Badge
+                </label>
+
+                <select id="ctaSelect" class="w-full rounded-xl border border-black/[0.1] bg-white px-3 py-2 text-sm font-medium hover:border-black/20 focus:outline-none focus:ring-4 focus:ring-accent/12 focus:border-accent/50 transition-all duration-200">
+                  <option value="SHOP ON ETSY">SHOP ON ETSY</option>
+                  <option value="VISIT SHOP">VISIT SHOP</option>
+                  <option value="ORDER NOW">ORDER NOW</option>
+                  <option value="LINK IN BIO">LINK IN BIO</option>
+                  <option value="FREE SHIPPING">FREE SHIPPING</option>
+                  <option value="custom">Custom Text...</option>
+                  <option value="none">None (Hide badge)</option>
+                </select>
+
+                <input
+                  id="ctaCustomInput"
+                  type="text"
+                  maxlength="25"
+                  placeholder="e.g. 20% OFF TODAY"
+                  class="hidden mt-2 w-full rounded-xl border border-black/[0.1] bg-white px-3 py-2 text-sm font-medium placeholder:text-ink/30 focus:outline-none focus:ring-4 focus:ring-accent/12 focus:border-accent/50 transition-all duration-200"
+                />
+              </div>
+
+              <!-- Image Adjustments -->
+              <div class="pt-2 border-t border-black/[0.05] space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-semibold uppercase tracking-wider text-ink/50">
+                    Image Adjustments
+                  </label>
+
+                  <button id="resetPositionBtn" type="button" class="text-xs text-accent hover:text-accentDark font-medium transition-colors">
+                    Reset
+                  </button>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs text-ink/60 mb-1">
+                    <span>Zoom</span>
+                    <span id="zoomValue" class="tabular-nums font-medium">100%</span>
+                  </div>
+
+                  <input id="zoomSlider" type="range" min="100" max="250" value="100" class="pf-slider" />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <div class="text-xs text-ink/60 mb-1">Position X</div>
+                    <input id="posXSlider" type="range" min="0" max="100" value="50" class="pf-slider" />
+                  </div>
+
+                  <div>
+                    <div class="text-xs text-ink/60 mb-1">Position Y</div>
+                    <input id="posYSlider" type="range" min="0" max="100" value="50" class="pf-slider" />
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
 
         <!-- Download -->
         <button id="downloadBtn" class="pf-btn-shine relative w-full overflow-hidden bg-accent hover:bg-accentDark active:scale-[0.97] text-white font-semibold text-[15px] rounded-xl py-3.5 shadow-button hover:shadow-buttonHover hover:-translate-y-0.5 transition-all duration-300 ease-premium flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-accent/30">
-          <svg id="downloadIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 16l-4-4M12 16l4-4"/><path d="M4 20h16"/></svg>
+          <svg id="downloadIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4M12 16l-4-4M12 16l4-4"/>
+            <path d="M4 20h16"/>
+          </svg>
+
           <span id="downloadLabel">Download PNG</span>
         </button>
-        <p class="text-center text-xs text-ink/35 mt-3">Exports at 1000 × 1500px — Pinterest's ideal pin size</p>
+
+        <p class="text-center text-xs text-ink/35 mt-2.5">
+          Exports at 1000 × 1500px — Pinterest's ideal pin size
+        </p>
       </section>
 
-      <!-- ---------- RIGHT: PIN PREVIEW ---------- -->
+      <!-- PREVIEW -->
       <section class="pf-fade-up order-1 lg:order-2 flex flex-col items-center" style="animation-delay: 0.24s;">
         <div class="w-full flex items-center justify-between mb-3.5 px-1">
           <span class="text-sm font-semibold text-ink/70">Live preview</span>
-          <span class="text-xs font-medium text-ink/40 bg-white ring-1 ring-black/[0.06] rounded-full px-2.5 py-1 tabular-nums">1000 × 1500</span>
+          <span class="text-xs font-medium text-ink/40 bg-white ring-1 ring-black/[0.06] rounded-full px-2.5 py-1 tabular-nums">
+            1000 × 1500
+          </span>
         </div>
 
-        <!-- Pin frame: fixed 2:3 aspect ratio, capped width, centered -->
         <div class="w-full max-w-[380px] sm:max-w-[420px] group">
           <div id="pinCard" class="pin-card relative w-full rounded-2xl overflow-hidden shadow-card ring-1 ring-black/[0.04] bg-white transition-all duration-500 ease-premium group-hover:shadow-cardHover group-hover:-translate-y-1">
 
-            <!-- Image layer -->
-            <div id="pinImageWrap" class="absolute inset-0 bg-gradient-to-br from-[#EDE7DC] to-[#DDD3C2] flex items-center justify-center">
-              <img id="pinImage" src="" alt="" class="hidden absolute inset-0 w-full h-full object-cover" />
+            <!-- Image -->
+            <div id="pinImageWrap" class="absolute inset-0 bg-gradient-to-br from-[#EDE7DC] to-[#DDD3C2] flex items-center justify-center overflow-hidden">
+              <img
+                id="pinImage"
+                src=""
+                alt=""
+                class="hidden absolute inset-0 w-full h-full object-cover"
+              />
+
               <div id="pinPlaceholder" class="flex flex-col items-center gap-2 text-ink/25 px-8 text-center">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-4.3-4.3a2 2 0 0 0-2.8 0L4 21"/></svg>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="3"/>
+                  <circle cx="8.5" cy="9.5" r="1.5"/>
+                  <path d="M21 15l-4.3-4.3a2 2 0 0 0-2.8 0L4 21"/>
+                </svg>
+
                 <span class="text-xs font-medium">Your image will appear here</span>
               </div>
             </div>
 
-            <!-- Scrim for text legibility -->
+            <!-- Scrim -->
             <div id="pinScrim" class="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none"></div>
 
-            <!-- Text overlay -->
-            <div id="pinTextWrap" class="absolute inset-x-0 bottom-0 p-[6%] flex flex-col gap-2">
+            <!-- Text -->
+            <div id="pinTextWrap" class="absolute inset-x-0 bottom-0 p-[6%] flex flex-col gap-2 text-left items-start">
               <h2 id="pinHeadline" class="pin-headline font-display font-bold text-white leading-[1.08] break-words">
                 Your Headline Here
               </h2>
+
               <p id="pinSubheadline" class="pin-subheadline text-white/85 font-medium leading-snug">
                 Add a subheadline for extra detail
               </p>
-              <span class="inline-flex w-fit items-center gap-1.5 mt-1 bg-white/95 rounded-full px-3 py-1.5 shadow-sm">
-                <span class="w-1.5 h-1.5 rounded-full bg-accent"></span>
-                <span class="text-[11px] font-bold text-ink tracking-wide">SHOP ON ETSY</span>
-              </span>
+
+              <div id="pinCtaWrap">
+                <span class="inline-flex w-fit items-center gap-1.5 mt-1 bg-white/95 rounded-full px-3 py-1.5 shadow-sm">
+                  <span class="w-1.5 h-1.5 rounded-full bg-accent"></span>
+                  <span id="pinCtaLabel" class="text-[11px] font-bold text-ink tracking-wide">
+                    SHOP ON ETSY
+                  </span>
+                </span>
+              </div>
             </div>
+
           </div>
         </div>
       </section>
@@ -201,7 +371,7 @@
     </div>
   </main>
 
-  <!-- Hidden canvas host used only during PNG export -->
+  <!-- Export host -->
   <div id="exportGhost" class="fixed -left-[9999px] top-0"></div>
 
   <script src="app.js"></script>
