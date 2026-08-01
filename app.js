@@ -1,6 +1,6 @@
 /* ==========================================================================
-   PinForge v0.6 — app.js
-   Stable Floating Preview + Image Position + Clean Export + HTML Export CTA
+   PinForge v0.7 — app.js
+   Stable Floating Preview + Image Position + Clean Export + Reliable Canvas CTA
    ========================================================================== */
 
 (function () {
@@ -992,10 +992,7 @@
   /* ==========================================================================
      17. EXPORT IMAGE LAYER
 
-     Keep the working v0.5 background-image method.
-
-     This is important because it avoids html2canvas stretching
-     the uploaded product image.
+     Keep the working background-image method.
      ========================================================================== */
 
   function buildExportImageLayer(clone) {
@@ -1091,17 +1088,13 @@
 
 
   /* ==========================================================================
-     18. EXPORT CTA
+     18. EXPORT CTA PLACEHOLDER
 
-     v0.6:
-     Do NOT hide the CTA.
-     Do NOT draw CTA on canvas.
+     The CTA keeps its real place in the flex layout,
+     but its contents are transparent during html2canvas capture.
 
-     Rebuild it as plain HTML with explicit inline styles,
-     while keeping #pinCtaWrap as a normal child of #pinTextWrap.
-
-     This means Bottom / Center / Top follow the same flex layout
-     as headline and subheadline.
+     We later draw the final CTA directly onto the canvas using
+     this placeholder's actual measured position.
      ========================================================================== */
 
   function rebuildExportCTA(clone) {
@@ -1110,10 +1103,6 @@
 
     if (!ctaWrap) return;
 
-
-    /*
-      No CTA selected.
-    */
 
     if (state.ctaType === "none") {
       ctaWrap.className = "";
@@ -1127,38 +1116,39 @@
       getCtaText();
 
 
-    /*
-      Strip inherited Tailwind state from wrapper.
-
-      IMPORTANT:
-      Keep it in normal flex flow.
-    */
-
     ctaWrap.className = "";
-
     ctaWrap.innerHTML = "";
 
-    ctaWrap.style.display = "block";
-    ctaWrap.style.position = "relative";
+    ctaWrap.style.display =
+      "block";
 
-    ctaWrap.style.width = "auto";
-    ctaWrap.style.height = "auto";
+    ctaWrap.style.position =
+      "relative";
 
-    ctaWrap.style.margin = "0";
-    ctaWrap.style.padding = "0";
+    ctaWrap.style.width =
+      "auto";
 
-    ctaWrap.style.opacity = "1";
-    ctaWrap.style.visibility = "visible";
+    ctaWrap.style.height =
+      "auto";
 
-    ctaWrap.style.zIndex = "20";
+    ctaWrap.style.margin =
+      "0";
 
+    ctaWrap.style.padding =
+      "0";
 
-    /*
-      White CTA pill.
-    */
+    ctaWrap.style.opacity =
+      "1";
+
+    ctaWrap.style.visibility =
+      "visible";
+
 
     const badge =
       document.createElement("div");
+
+    badge.id =
+      "pinCtaExportAnchor";
 
     badge.style.display =
       "inline-flex";
@@ -1190,35 +1180,28 @@
     badge.style.gap =
       "12px";
 
-    /*
-      Solid white — deliberately no opacity.
-    */
-
-    badge.style.background =
-      "#FFFFFF";
-
-    badge.style.backgroundColor =
-      "#FFFFFF";
-
     badge.style.border =
       "0";
 
     badge.style.borderRadius =
       "9999px";
 
-    badge.style.opacity =
-      "1";
-
-    badge.style.visibility =
-      "visible";
-
     badge.style.whiteSpace =
       "nowrap";
 
-
     /*
-      Gold dot.
+      Transparent on purpose.
+
+      It must still occupy its real dimensions,
+      but html2canvas should not draw the CTA.
     */
+
+    badge.style.background =
+      "transparent";
+
+    badge.style.color =
+      "transparent";
+
 
     const dot =
       document.createElement("span");
@@ -1235,37 +1218,12 @@
     dot.style.minWidth =
       "12px";
 
-    dot.style.minHeight =
-      "12px";
-
     dot.style.flex =
       "0 0 12px";
 
-    dot.style.margin =
-      "0";
-
-    dot.style.padding =
-      "0";
-
     dot.style.background =
-      "#B88A58";
+      "transparent";
 
-    dot.style.backgroundColor =
-      "#B88A58";
-
-    dot.style.borderRadius =
-      "9999px";
-
-    dot.style.opacity =
-      "1";
-
-
-    /*
-      Dark CTA label.
-
-      Plain Arial is intentional for export reliability.
-      No inherited text-white class.
-    */
 
     const label =
       document.createElement("span");
@@ -1276,18 +1234,6 @@
     label.style.display =
       "block";
 
-    label.style.margin =
-      "0";
-
-    label.style.padding =
-      "0";
-
-    label.style.color =
-      "#1F2937";
-
-    label.style.webkitTextFillColor =
-      "#1F2937";
-
     label.style.fontFamily =
       "Arial, sans-serif";
 
@@ -1297,29 +1243,20 @@
     label.style.fontWeight =
       "700";
 
-    label.style.fontStyle =
-      "normal";
-
     label.style.lineHeight =
       "1";
 
     label.style.letterSpacing =
       "1px";
 
-    label.style.textDecoration =
-      "none";
-
-    label.style.textShadow =
-      "none";
-
-    label.style.opacity =
-      "1";
-
-    label.style.visibility =
-      "visible";
-
     label.style.whiteSpace =
       "nowrap";
+
+    label.style.color =
+      "transparent";
+
+    label.style.webkitTextFillColor =
+      "transparent";
 
 
     badge.appendChild(
@@ -1344,10 +1281,6 @@
     const clone =
       dom.pinCard.cloneNode(true);
 
-
-    /*
-      Main export card.
-    */
 
     clone.id =
       "pinCardExport";
@@ -1402,18 +1335,10 @@
       "hidden";
 
 
-    /*
-      Product image.
-    */
-
     buildExportImageLayer(
       clone
     );
 
-
-    /*
-      Scrim.
-    */
 
     const scrim =
       clone.querySelector("#pinScrim");
@@ -1424,14 +1349,6 @@
     }
 
 
-    /*
-      Text wrapper.
-
-      IMPORTANT:
-      preserve the selected Bottom / Center / Top Tailwind classes.
-      Do not rebuild its position manually.
-    */
-
     const textWrap =
       clone.querySelector("#pinTextWrap");
 
@@ -1440,10 +1357,6 @@
         "10";
     }
 
-
-    /*
-      Headline.
-    */
 
     const headline =
       clone.querySelector("#pinHeadline");
@@ -1476,10 +1389,6 @@
         "1";
     }
 
-
-    /*
-      Subheadline.
-    */
 
     const subheadline =
       clone.querySelector(
@@ -1514,10 +1423,6 @@
     }
 
 
-    /*
-      CTA stays inside #pinTextWrap.
-    */
-
     rebuildExportCTA(
       clone
     );
@@ -1528,7 +1433,351 @@
 
 
   /* ==========================================================================
-     20. SAVE PNG
+     20. CANVAS CTA
+
+     Measure the actual CTA placeholder inside the 1000×1500
+     export card, then draw the final badge directly onto canvas.
+
+     No guessed Top / Center / Bottom coordinates.
+     ========================================================================== */
+
+  function roundedRect(
+    ctx,
+    x,
+    y,
+    width,
+    height,
+    radius
+  ) {
+    const r =
+      Math.min(
+        radius,
+        width / 2,
+        height / 2
+      );
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      x + r,
+      y
+    );
+
+    ctx.lineTo(
+      x + width - r,
+      y
+    );
+
+    ctx.quadraticCurveTo(
+      x + width,
+      y,
+      x + width,
+      y + r
+    );
+
+    ctx.lineTo(
+      x + width,
+      y + height - r
+    );
+
+    ctx.quadraticCurveTo(
+      x + width,
+      y + height,
+      x + width - r,
+      y + height
+    );
+
+    ctx.lineTo(
+      x + r,
+      y + height
+    );
+
+    ctx.quadraticCurveTo(
+      x,
+      y + height,
+      x,
+      y + height - r
+    );
+
+    ctx.lineTo(
+      x,
+      y + r
+    );
+
+    ctx.quadraticCurveTo(
+      x,
+      y,
+      x + r,
+      y
+    );
+
+    ctx.closePath();
+  }
+
+
+  function getExportCTARect(exportCard) {
+    const anchor =
+      exportCard.querySelector(
+        "#pinCtaExportAnchor"
+      );
+
+    if (!anchor) {
+      return null;
+    }
+
+
+    const cardRect =
+      exportCard.getBoundingClientRect();
+
+    const anchorRect =
+      anchor.getBoundingClientRect();
+
+
+    return {
+      x:
+        anchorRect.left -
+        cardRect.left,
+
+      y:
+        anchorRect.top -
+        cardRect.top,
+
+      width:
+        anchorRect.width,
+
+      height:
+        anchorRect.height,
+    };
+  }
+
+
+  function drawCanvasCTA(
+    canvas,
+    ctaRect
+  ) {
+    if (
+      state.ctaType === "none" ||
+      !ctaRect
+    ) {
+      return;
+    }
+
+
+    const ctx =
+      canvas.getContext("2d");
+
+    if (!ctx) return;
+
+
+    const text =
+      getCtaText();
+
+
+    /*
+      Canvas is expected to be exactly the same size
+      as the export card, but use scale factors anyway
+      for safety.
+    */
+
+    const scaleX =
+      canvas.width /
+      CONFIG.exportWidth;
+
+    const scaleY =
+      canvas.height /
+      CONFIG.exportHeight;
+
+
+    const x =
+      ctaRect.x *
+      scaleX;
+
+    const y =
+      ctaRect.y *
+      scaleY;
+
+    const badgeHeight =
+      56 *
+      scaleY;
+
+
+    /*
+      Typography.
+    */
+
+    const fontSize =
+      24 *
+      scaleY;
+
+    ctx.save();
+
+    ctx.font =
+      `700 ${fontSize}px Arial, sans-serif`;
+
+    ctx.textBaseline =
+      "middle";
+
+    ctx.textAlign =
+      "left";
+
+
+    const textWidth =
+      ctx.measureText(text).width;
+
+
+    const dotSize =
+      12 *
+      scaleX;
+
+    const gap =
+      12 *
+      scaleX;
+
+    const paddingLeft =
+      26 *
+      scaleX;
+
+    const paddingRight =
+      26 *
+      scaleX;
+
+
+    /*
+      Recalculate width using canvas measurement.
+      This guarantees enough room for the actual text.
+    */
+
+    const badgeWidth =
+      Math.ceil(
+        paddingLeft +
+        dotSize +
+        gap +
+        textWidth +
+        paddingRight
+      );
+
+
+    /*
+      Shadow.
+    */
+
+    ctx.save();
+
+    ctx.shadowColor =
+      "rgba(0, 0, 0, 0.12)";
+
+    ctx.shadowBlur =
+      12 *
+      scaleX;
+
+    ctx.shadowOffsetY =
+      3 *
+      scaleY;
+
+    ctx.fillStyle =
+      "#FFFFFF";
+
+
+    roundedRect(
+      ctx,
+      x,
+      y,
+      badgeWidth,
+      badgeHeight,
+      badgeHeight / 2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+
+
+    /*
+      Solid white pill.
+    */
+
+    ctx.fillStyle =
+      "#FFFFFF";
+
+    roundedRect(
+      ctx,
+      x,
+      y,
+      badgeWidth,
+      badgeHeight,
+      badgeHeight / 2
+    );
+
+    ctx.fill();
+
+
+    /*
+      Gold dot.
+    */
+
+    const dotX =
+      x +
+      paddingLeft +
+      dotSize / 2;
+
+    const dotY =
+      y +
+      badgeHeight / 2;
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+      dotX,
+      dotY,
+      dotSize / 2,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fillStyle =
+      "#B88A58";
+
+    ctx.fill();
+
+
+    /*
+      Dark CTA text.
+    */
+
+    ctx.font =
+      `700 ${fontSize}px Arial, sans-serif`;
+
+    ctx.fillStyle =
+      "#1F2937";
+
+    ctx.globalAlpha =
+      1;
+
+    ctx.textBaseline =
+      "middle";
+
+    ctx.textAlign =
+      "left";
+
+
+    ctx.fillText(
+      text,
+      x +
+        paddingLeft +
+        dotSize +
+        gap,
+      y +
+        badgeHeight / 2
+    );
+
+
+    ctx.restore();
+  }
+
+
+  /* ==========================================================================
+     21. SAVE PNG
      ========================================================================== */
 
   async function saveCanvas(
@@ -1618,7 +1867,7 @@
 
 
   /* ==========================================================================
-     21. EXPORT PIN
+     22. EXPORT PIN
      ========================================================================== */
 
   async function exportPin() {
@@ -1640,26 +1889,14 @@
 
     try {
 
-      /*
-        Wait for fonts.
-      */
-
       if (document.fonts?.ready) {
         await document.fonts.ready;
       }
 
 
-      /*
-        Build export card.
-      */
-
       const exportCard =
         buildExportCard();
 
-
-      /*
-        Prepare export host.
-      */
 
       dom.exportGhost.innerHTML =
         "";
@@ -1676,7 +1913,8 @@
 
 
       /*
-        Let browser finish layout.
+        Let the real 1000×1500 export layout settle
+        before measuring the CTA anchor.
       */
 
       await new Promise(function (resolve) {
@@ -1686,16 +1924,23 @@
       });
 
 
-      /*
-        Safari/data URL background paint buffer.
-      */
-
       await new Promise(function (resolve) {
         setTimeout(
           resolve,
           120
         );
       });
+
+
+      /*
+        IMPORTANT:
+        Measure CTA while export card still exists in DOM.
+      */
+
+      const ctaRect =
+        getExportCTARect(
+          exportCard
+        );
 
 
       if (
@@ -1709,8 +1954,10 @@
 
 
       /*
-        Render EVERYTHING together:
-        image + scrim + text + HTML CTA.
+        Render image + scrim + headline + subheadline.
+
+        CTA placeholder is transparent but still occupies
+        the correct location.
       */
 
       const canvas =
@@ -1753,27 +2000,31 @@
         );
 
 
+      /*
+        Draw final CTA directly onto the rendered canvas.
+      */
+
+      drawCanvasCTA(
+        canvas,
+        ctaRect
+      );
+
+
       console.log(
         "PinForge export:",
         canvas.width,
         "×",
-        canvas.height
+        canvas.height,
+        "CTA:",
+        ctaRect
       );
 
-
-      /*
-        Save final PNG.
-      */
 
       await saveCanvas(
         canvas,
         makeFilename()
       );
 
-
-      /*
-        Cleanup.
-      */
 
       dom.exportGhost.innerHTML =
         "";
@@ -1825,7 +2076,7 @@
 
 
   /* ==========================================================================
-     22. INITIAL STATE
+     23. INITIAL STATE
      ========================================================================== */
 
   function setInitialState() {
@@ -1837,10 +2088,6 @@
       dom.subheadlineInput?.value ||
       "";
 
-
-    /*
-      Image.
-    */
 
     state.zoom =
       CONFIG.zoomDefault;
@@ -1854,18 +2101,10 @@
     updateImageControls();
 
 
-    /*
-      Overlay.
-    */
-
     setOverlayStyle(
       "bottom"
     );
 
-
-    /*
-      Font.
-    */
 
     state.font =
       "league-spartan";
@@ -1873,18 +2112,10 @@
     applyFont();
 
 
-    /*
-      Color.
-    */
-
     applyColor(
       "#ffffff"
     );
 
-
-    /*
-      CTA.
-    */
 
     state.ctaType =
       dom.ctaSelect?.value ||
@@ -1893,18 +2124,10 @@
     renderCTA();
 
 
-    /*
-      Customize closed.
-    */
-
     setCustomizeOpen(
       false
     );
 
-
-    /*
-      Counters.
-    */
 
     if (dom.headlineCount) {
       dom.headlineCount.textContent =
@@ -1921,10 +2144,6 @@
     renderSubheadline();
 
 
-    /*
-      Mirror after state is ready.
-    */
-
     syncFloatingPreview();
 
 
@@ -1936,7 +2155,7 @@
 
 
   /* ==========================================================================
-     23. INIT
+     24. INIT
      ========================================================================== */
 
   function init() {
@@ -1961,22 +2180,14 @@
     setupHeader();
 
 
-    /*
-      Initialize real preview first.
-    */
-
     setInitialState();
 
-
-    /*
-      Then initialize floating mirror.
-    */
 
     setupMobilePreview();
 
 
     console.log(
-      "PinForge v0.6 initialized ✨"
+      "PinForge v0.7 initialized ✨"
     );
   }
 
