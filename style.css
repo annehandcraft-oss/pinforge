@@ -1,6 +1,6 @@
 /* ==========================================================================
-   PinForge v0.2 — Styles
-   Clean, responsive styling for the Pinterest Pin Generator
+   PinForge v0.2.1 — Styles
+   Clean Stable Baseline
    ========================================================================== */
 
 
@@ -84,11 +84,27 @@ button {
   transform: scale(1.01);
 }
 
+/*
+ * Pin image fills the entire preview.
+ *
+ * JS controls translate + scale.
+ * object-position remains centered so it does not fight
+ * against the transform calculations.
+ */
 #pinImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+
+  transform-origin: center center;
+
   will-change: transform;
+
   transition:
-    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-    object-position 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+
+  display: block;
 }
 
 #pinImage.pf-animate-in {
@@ -140,6 +156,7 @@ button {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
+
   transition:
     grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1),
     opacity 0.3s ease;
@@ -165,7 +182,9 @@ button {
 
 .font-chip {
   appearance: none;
+
   border: 1px solid rgba(31, 41, 55, 0.10);
+
   background: #ffffff;
   color: rgba(31, 41, 55, 0.72);
 
@@ -179,6 +198,7 @@ button {
   line-height: 1;
 
   cursor: pointer;
+  user-select: none;
 
   transition:
     color 0.2s ease,
@@ -198,7 +218,9 @@ button {
   color: #ffffff;
   background: #1F2937;
   border-color: #1F2937;
-  box-shadow: 0 5px 14px -7px rgba(31, 41, 55, 0.45);
+
+  box-shadow:
+    0 5px 14px -7px rgba(31, 41, 55, 0.45);
 }
 
 .font-chip:active {
@@ -262,7 +284,9 @@ button {
   opacity: 0;
 }
 
-/* Give white swatch visible boundary */
+
+/* White swatch visible boundary */
+
 .color-swatch[data-color="#ffffff"] {
   box-shadow:
     inset 0 0 0 1px rgba(31, 41, 55, 0.10),
@@ -295,6 +319,7 @@ button {
 
   position: absolute;
   inset: 50% auto auto 50%;
+
   transform: translate(-50%, -50%);
 
   display: flex;
@@ -385,7 +410,9 @@ button {
   border-radius: 50%;
 
   background: #ffffff;
-  border: 1px solid rgba(31, 41, 55, 0.10);
+
+  border:
+    1px solid rgba(31, 41, 55, 0.10);
 
   box-shadow:
     0 1px 3px rgba(31, 41, 55, 0.10),
@@ -429,7 +456,9 @@ button {
   border-radius: 50%;
 
   background: #ffffff;
-  border: 1px solid rgba(31, 41, 55, 0.10);
+
+  border:
+    1px solid rgba(31, 41, 55, 0.10);
 
   box-shadow:
     0 1px 3px rgba(31, 41, 55, 0.10),
@@ -447,24 +476,27 @@ button {
   content: "";
 
   position: absolute;
+
   top: 0;
   left: -120%;
 
   width: 80%;
   height: 100%;
 
-  background: linear-gradient(
-    110deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.05) 30%,
-    rgba(255, 255, 255, 0.22) 50%,
-    rgba(255, 255, 255, 0.05) 70%,
-    transparent 100%
-  );
+  background:
+    linear-gradient(
+      110deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 30%,
+      rgba(255, 255, 255, 0.22) 50%,
+      rgba(255, 255, 255, 0.05) 70%,
+      transparent 100%
+    );
 
   transform: skewX(-18deg);
 
-  transition: left 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    left 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 
   pointer-events: none;
 }
@@ -487,7 +519,8 @@ button {
    ========================================================================== */
 
 .pf-spin {
-  animation: pfSpin 0.75s linear infinite;
+  animation:
+    pfSpin 0.75s linear infinite;
 }
 
 @keyframes pfSpin {
@@ -506,7 +539,9 @@ button {
 .style-btn:focus-visible,
 #customizeToggleBtn:focus-visible,
 #resetPositionBtn:focus-visible {
-  outline: 2px solid rgba(184, 138, 88, 0.65);
+  outline:
+    2px solid rgba(184, 138, 88, 0.65);
+
   outline-offset: 2px;
 }
 
@@ -516,28 +551,194 @@ button {
    ========================================================================== */
 
 #exportGhost {
+  position: fixed;
+
+  top: -10000px;
+  left: -10000px;
+
+  width: 1000px;
+  height: 1500px;
+
+  overflow: hidden;
+
   pointer-events: none;
+
   z-index: -9999;
 }
 
 
 /* ==========================================================================
    17. MOBILE
+   IMPORTANT:
+   The real #pinCard stays in normal document flow.
+   We DO NOT make it sticky/fixed here.
+   A separate cloned preview will handle that in app.js.
+   ========================================================================== */
+
+@media (max-width: 1023px) {
+
+  /*
+   * Override the old .lg:sticky mobile behavior.
+   * Tailwind's desktop sticky behavior remains untouched.
+   */
+
+  .lg\:sticky {
+    position: static !important;
+    top: auto !important;
+  }
+
+  /*
+   * Keep the original preview large and beautiful.
+   */
+
+  #pinCard {
+    width: 100%;
+    max-width: 450px !important;
+
+    margin-left: auto;
+    margin-right: auto;
+
+    position: relative;
+
+    aspect-ratio: 2 / 3;
+
+    box-shadow:
+      0 10px 30px rgba(17, 24, 39, 0.12);
+  }
+
+
+  /*
+   * Separate floating clone.
+   * app.js will create this element.
+   *
+   * Since this is NOT the original pinCard,
+   * scrolling cannot cause layout feedback/flickering.
+   */
+
+  #pfMobilePreview {
+    position: fixed;
+
+    top: 76px;
+    right: 14px;
+
+    width: 128px;
+    height: 192px;
+
+    z-index: 999;
+
+    overflow: hidden;
+
+    border-radius: 12px;
+
+    background: #ffffff;
+
+    box-shadow:
+      0 12px 32px rgba(17, 24, 39, 0.20),
+      0 3px 10px rgba(17, 24, 39, 0.10);
+
+    pointer-events: none;
+
+    opacity: 0;
+    visibility: hidden;
+
+    transform:
+      translateY(-8px)
+      scale(0.96);
+
+    transition:
+      opacity 0.2s ease,
+      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      visibility 0.2s ease;
+  }
+
+  #pfMobilePreview.is-visible {
+    opacity: 1;
+    visibility: visible;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+
+  /*
+   * The clone contains another 2:3 card.
+   */
+
+  #pfMobilePreview .pf-mobile-preview-card {
+    width: 128px !important;
+    height: 192px !important;
+
+    min-width: 128px !important;
+    max-width: 128px !important;
+
+    margin: 0 !important;
+
+    border-radius: 12px !important;
+
+    box-shadow: none !important;
+
+    overflow: hidden;
+
+    position: relative;
+  }
+
+
+  /*
+   * Shrink typography proportionally inside mini preview.
+   */
+
+  #pfMobilePreview #pinHeadline {
+    font-size: 9px !important;
+    line-height: 1.12 !important;
+  }
+
+  #pfMobilePreview #pinSubheadline {
+    font-size: 5.5px !important;
+    line-height: 1.2 !important;
+  }
+
+  #pfMobilePreview #pinTextWrap {
+    gap: 3px !important;
+  }
+
+  #pfMobilePreview #pinCtaWrap {
+    transform: scale(0.42);
+    transform-origin: left center;
+
+    margin-top: -2px;
+    margin-bottom: -2px;
+  }
+
+  #pfMobilePreview #pinCtaLabel {
+    white-space: nowrap;
+  }
+
+}
+
+
+/* ==========================================================================
+   18. SMALL MOBILE
    ========================================================================== */
 
 @media (max-width: 639px) {
 
   .pin-headline {
-    font-size: clamp(1.65rem, 7vw, 2.2rem);
+    font-size:
+      clamp(1.65rem, 7vw, 2.2rem);
   }
 
   .pin-subheadline {
-    font-size: clamp(0.82rem, 3.5vw, 1rem);
+    font-size:
+      clamp(0.82rem, 3.5vw, 1rem);
   }
 
   .font-chip {
     min-height: 36px;
-    padding: 7px 10px;
+
+    padding:
+      7px 10px;
+
     font-size: 12px;
   }
 
@@ -548,6 +749,7 @@ button {
   .color-swatch {
     width: 28px;
     height: 28px;
+
     flex-basis: 28px;
   }
 
@@ -555,7 +757,7 @@ button {
 
 
 /* ==========================================================================
-   18. SMALL MOBILE
+   19. VERY SMALL MOBILE
    ========================================================================== */
 
 @media (max-width: 380px) {
@@ -568,14 +770,31 @@ button {
   .color-swatch {
     width: 26px;
     height: 26px;
+
     flex-basis: 26px;
+  }
+
+  #pfMobilePreview {
+    width: 112px;
+    height: 168px;
+
+    right: 10px;
+    top: 72px;
+  }
+
+  #pfMobilePreview .pf-mobile-preview-card {
+    width: 112px !important;
+    height: 168px !important;
+
+    min-width: 112px !important;
+    max-width: 112px !important;
   }
 
 }
 
 
 /* ==========================================================================
-   19. REDUCED MOTION
+   20. REDUCED MOTION
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -584,119 +803,15 @@ button {
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
 
-}
-/* ==========================================================================
-   PinForge v0.2.2 — Mobile Live Preview Patch
-   APPEND THIS TO THE VERY BOTTOM OF style.css
-   ========================================================================== */
+    animation-duration:
+      0.01ms !important;
 
-@media (max-width: 1023px) {
+    animation-iteration-count:
+      1 !important;
 
-  /*
-   * Normal pin stays exactly as designed.
-   * It only becomes compact after JS adds
-   * .pf-mobile-live-preview while scrolling.
-   */
-  #pinCard {
-    transition:
-      width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-      max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-      box-shadow 0.25s ease;
-  }
-
-  #pinCard.pf-mobile-live-preview {
-    position: fixed !important;
-
-    top: 76px !important;
-    right: 14px !important;
-    left: auto !important;
-    bottom: auto !important;
-
-    width: 128px !important;
-    max-width: 128px !important;
-    height: auto !important;
-
-    aspect-ratio: 2 / 3 !important;
-
-    margin: 0 !important;
-
-    z-index: 999 !important;
-
-    border-radius: 12px !important;
-
-    box-shadow:
-      0 12px 32px rgba(17, 24, 39, 0.20),
-      0 3px 10px rgba(17, 24, 39, 0.10) !important;
-
-    overflow: hidden;
-
-    animation: pfMiniPreviewIn 0.25s
-      cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  /*
-   * Text inside mini preview must shrink too.
-   * Otherwise headline stays huge.
-   */
-  #pinCard.pf-mobile-live-preview .pin-headline,
-  #pinCard.pf-mobile-live-preview #pinHeadline {
-    font-size: 9px !important;
-    line-height: 1.1 !important;
-  }
-
-  #pinCard.pf-mobile-live-preview .pin-subheadline,
-  #pinCard.pf-mobile-live-preview #pinSubheadline {
-    font-size: 5px !important;
-    line-height: 1.2 !important;
-  }
-
-  #pinCard.pf-mobile-live-preview #pinTextWrap {
-    gap: 3px !important;
-  }
-
-  #pinCard.pf-mobile-live-preview #pinCtaWrap {
-    transform: scale(0.42);
-    transform-origin: left center;
-    margin-top: -2px;
-    margin-bottom: -2px;
-  }
-
-  #pinCard.pf-mobile-live-preview #pinCtaLabel {
-    white-space: nowrap;
-  }
-}
-
-
-@keyframes pfMiniPreviewIn {
-
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.96);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-
-}
-
-
-/* Extra breathing room for very small iPhones */
-
-@media (max-width: 380px) {
-
-  #pinCard.pf-mobile-live-preview {
-    width: 112px !important;
-    max-width: 112px !important;
-
-    top: 72px !important;
-    right: 10px !important;
+    transition-duration:
+      0.01ms !important;
   }
 
 }
