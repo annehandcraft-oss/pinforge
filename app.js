@@ -1,23 +1,7 @@
 /* ==========================================================================
    PinForge v0.2 — app.js
-   FULL REPLACEMENT
+   Stable Build
    Matches current index.html + style.css
-
-   Fixes:
-   - Upload image
-   - Zoom
-   - Position X
-   - Position Y
-   - Overlay Bottom / Center / Top
-   - Headline + Subheadline
-   - Font selector
-   - Headline color
-   - CTA selector + custom CTA
-   - Customize accordion
-   - Exact 1000 × 1500 export
-   - Prevent distorted / stretched export image
-   - Preserve CTA text in export
-   - Better iOS / Safari export handling
    ========================================================================== */
 
 (function () {
@@ -28,134 +12,56 @@
      ========================================================================== */
 
   const CONFIG = {
-    export: {
-      width: 1000,
-      height: 1500,
-    },
+    exportWidth: 1000,
+    exportHeight: 1500,
 
-    text: {
-      headlineFallback: "Your Headline Here",
-      subheadlineFallback: "Add a subheadline for extra detail",
-    },
+    zoomDefault: 100,
+    posXDefault: 50,
+    posYDefault: 50,
 
-    image: {
-      zoomDefault: 100,
-      positionDefault: 50,
-    },
+    maxFileSize: 10 * 1024 * 1024,
 
-    cta: {
-      customValue: "custom",
-      noneValue: "none",
-      defaultValue: "SHOP ON ETSY",
-    },
+    headlineFallback: "Your Headline Here",
+    subheadlineFallback: "Add a subheadline for extra detail",
 
-    successMessageDurationMs: 1600,
-    headerScrollThresholdPx: 8,
+    successDuration: 1600,
   };
 
 
   /* ==========================================================================
-     2. OVERLAY PRESETS
-     ========================================================================== */
-
-  const STYLE_PRESETS = {
-    bottom: {
-      wrap:
-        "absolute inset-x-0 bottom-0 p-[6%] flex flex-col gap-2 text-left items-start",
-
-      scrim:
-        "absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none",
-    },
-
-    center: {
-      wrap:
-        "absolute inset-x-0 top-1/2 -translate-y-1/2 p-[6%] flex flex-col items-center text-center gap-2",
-
-      scrim:
-        "absolute inset-0 bg-black/35 pointer-events-none",
-    },
-
-    top: {
-      wrap:
-        "absolute inset-x-0 top-0 p-[6%] flex flex-col gap-2 text-left items-start",
-
-      scrim:
-        "absolute inset-x-0 top-0 h-[46%] bg-gradient-to-b from-black/70 via-black/25 to-transparent pointer-events-none",
-    },
-  };
-
-
-  /* ==========================================================================
-     3. FONT FAMILIES
+     2. FONT MAP
      ========================================================================== */
 
   const FONT_FAMILIES = {
     "league-spartan": "'League Spartan', sans-serif",
-    inter: "'Inter', sans-serif",
+    "inter": "'Inter', sans-serif",
     "playfair-display": "'Playfair Display', serif",
     "dm-serif-display": "'DM Serif Display', serif",
-    poppins: "'Poppins', sans-serif",
-    caveat: "'Caveat', cursive",
+    "poppins": "'Poppins', sans-serif",
+    "caveat": "'Caveat', cursive",
   };
 
 
   /* ==========================================================================
-     4. ICONS
-     ========================================================================== */
-
-  const ICONS = {
-    download: `
-      <svg width="16" height="16" viewBox="0 0 24 24"
-        fill="none" stroke="white" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 16V4M12 16l-4-4M12 16l4-4"/>
-        <path d="M4 20h16"/>
-      </svg>
-    `,
-
-    spinner: `
-      <svg class="pf-spin" width="16" height="16" viewBox="0 0 24 24"
-        fill="none" stroke="white" stroke-width="2">
-        <circle cx="12" cy="12" r="9" stroke-opacity="0.3"/>
-        <path d="M21 12a9 9 0 0 0-9-9"/>
-      </svg>
-    `,
-
-    check: `
-      <svg width="16" height="16" viewBox="0 0 24 24"
-        fill="none" stroke="white" stroke-width="2.5"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 13l4 4L19 7"/>
-      </svg>
-    `,
-  };
-
-
-  /* ==========================================================================
-     5. DOM CACHE
+     3. DOM
      ========================================================================== */
 
   const dom = {
     siteHeader: document.getElementById("siteHeader"),
 
-    /* Upload */
     dropzone: document.getElementById("dropzone"),
     fileInput: document.getElementById("fileInput"),
     removeImageBtn: document.getElementById("removeImageBtn"),
 
-    /* Preview image */
-    pinImageWrap: document.getElementById("pinImageWrap"),
     pinImage: document.getElementById("pinImage"),
     pinPlaceholder: document.getElementById("pinPlaceholder"),
 
-    /* Image controls */
     zoomSlider: document.getElementById("zoomSlider"),
     zoomValue: document.getElementById("zoomValue"),
     posXSlider: document.getElementById("posXSlider"),
     posYSlider: document.getElementById("posYSlider"),
     resetPositionBtn: document.getElementById("resetPositionBtn"),
 
-    /* Text */
     headlineInput: document.getElementById("headlineInput"),
     subheadlineInput: document.getElementById("subheadlineInput"),
     headlineCount: document.getElementById("headlineCount"),
@@ -164,48 +70,46 @@
     pinHeadline: document.getElementById("pinHeadline"),
     pinSubheadline: document.getElementById("pinSubheadline"),
 
-    /* Overlay */
     styleToggle: document.getElementById("styleToggle"),
     styleTogglePill: document.getElementById("styleTogglePill"),
+
     pinTextWrap: document.getElementById("pinTextWrap"),
     pinScrim: document.getElementById("pinScrim"),
 
-    /* Customize */
     customizeToggleBtn: document.getElementById("customizeToggleBtn"),
     customizePanel: document.getElementById("customizePanel"),
     customizeChevron: document.getElementById("customizeChevron"),
 
-    /* Font */
     fontSelector: document.getElementById("fontSelector"),
 
-    /* Color */
     colorSelector: document.getElementById("colorSelector"),
     customColorSwatch: document.getElementById("customColorSwatch"),
     customColorInput: document.getElementById("customColorInput"),
 
-    /* CTA */
     ctaSelect: document.getElementById("ctaSelect"),
     ctaCustomInput: document.getElementById("ctaCustomInput"),
     pinCtaWrap: document.getElementById("pinCtaWrap"),
     pinCtaLabel: document.getElementById("pinCtaLabel"),
 
-    /* Export */
     downloadBtn: document.getElementById("downloadBtn"),
+    downloadIcon: document.getElementById("downloadIcon"),
+    downloadLabel: document.getElementById("downloadLabel"),
+
     pinCard: document.getElementById("pinCard"),
     exportGhost: document.getElementById("exportGhost"),
   };
 
 
   /* ==========================================================================
-     6. STATE
+     4. STATE
      ========================================================================== */
 
   const state = {
     imageSrc: null,
 
-    zoom: CONFIG.image.zoomDefault,
-    posX: CONFIG.image.positionDefault,
-    posY: CONFIG.image.positionDefault,
+    zoom: CONFIG.zoomDefault,
+    posX: CONFIG.posXDefault,
+    posY: CONFIG.posYDefault,
 
     headline: "",
     subheadline: "",
@@ -215,30 +119,33 @@
     font: "league-spartan",
     color: "#ffffff",
 
-    ctaType: CONFIG.cta.defaultValue,
+    ctaType: "SHOP ON ETSY",
     customCta: "",
 
-    isCustomizingOpen: false,
-    isExporting: false,
+    customizeOpen: false,
+    exporting: false,
   };
 
 
   /* ==========================================================================
-     7. IMAGE TRANSFORM
+     5. IMAGE POSITIONING
      ========================================================================== */
 
   function applyImageTransform() {
     if (!dom.pinImage) return;
 
-    const scale = state.zoom / 100;
+    const zoomScale = state.zoom / 100;
 
     /*
       IMPORTANT:
-      object-position handles X/Y movement.
-      transform handles ONLY zoom.
 
-      Do not combine translateX/Y here because that can make
-      Position Y behave strangely with object-fit: cover.
+      object-position handles X/Y positioning.
+
+      transform ONLY handles zoom.
+
+      Do NOT translate the image here.
+      Combining translate + object-position was the reason Y positioning
+      became unpredictable in previous builds.
     */
 
     dom.pinImage.style.width = "100%";
@@ -249,16 +156,16 @@
       `${state.posX}% ${state.posY}%`;
 
     dom.pinImage.style.transform =
-      `scale(${scale})`;
+      `scale(${zoomScale})`;
 
     dom.pinImage.style.transformOrigin =
-      `${state.posX}% ${state.posY}%`;
+      "center center";
   }
 
 
-  function updateImageControls() {
+  function syncImageControls() {
     if (dom.zoomSlider) {
-      dom.zoomSlider.value = String(state.zoom);
+      dom.zoomSlider.value = state.zoom;
     }
 
     if (dom.zoomValue) {
@@ -267,13 +174,11 @@
     }
 
     if (dom.posXSlider) {
-      dom.posXSlider.value =
-        String(state.posX);
+      dom.posXSlider.value = state.posX;
     }
 
     if (dom.posYSlider) {
-      dom.posYSlider.value =
-        String(state.posY);
+      dom.posYSlider.value = state.posY;
     }
 
     applyImageTransform();
@@ -281,21 +186,16 @@
 
 
   function resetImagePosition() {
-    state.zoom =
-      CONFIG.image.zoomDefault;
+    state.zoom = CONFIG.zoomDefault;
+    state.posX = CONFIG.posXDefault;
+    state.posY = CONFIG.posYDefault;
 
-    state.posX =
-      CONFIG.image.positionDefault;
-
-    state.posY =
-      CONFIG.image.positionDefault;
-
-    updateImageControls();
+    syncImageControls();
   }
 
 
   /* ==========================================================================
-     8. UPLOAD
+     6. IMAGE UPLOAD
      ========================================================================== */
 
   function handleFile(file) {
@@ -306,7 +206,7 @@
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > CONFIG.maxFileSize) {
       alert("Image must be smaller than 10MB.");
       return;
     }
@@ -314,46 +214,36 @@
     const reader = new FileReader();
 
     reader.onload = function (event) {
-      const result =
-        event.target &&
-        event.target.result;
+      const result = event.target.result;
 
       if (!result) return;
 
       state.imageSrc = result;
 
+      resetImagePosition();
+
       if (dom.pinImage) {
+        dom.pinImage.onload = function () {
+          applyImageTransform();
+        };
+
         dom.pinImage.src = result;
-
-        dom.pinImage.classList.remove(
-          "hidden"
-        );
-
-        dom.pinImage.classList.add(
-          "pf-animate-in"
-        );
+        dom.pinImage.classList.remove("hidden");
+        dom.pinImage.classList.add("pf-animate-in");
       }
 
       if (dom.pinPlaceholder) {
-        dom.pinPlaceholder.classList.add(
-          "hidden"
-        );
+        dom.pinPlaceholder.classList.add("hidden");
       }
 
       if (dom.removeImageBtn) {
-        dom.removeImageBtn.classList.remove(
-          "hidden"
-        );
+        dom.removeImageBtn.classList.remove("hidden");
       }
 
-      resetImagePosition();
-
       setTimeout(function () {
-        if (dom.pinImage) {
-          dom.pinImage.classList.remove(
-            "pf-animate-in"
-          );
-        }
+        dom.pinImage?.classList.remove(
+          "pf-animate-in"
+        );
       }, 500);
     };
 
@@ -364,25 +254,21 @@
   function clearImage() {
     state.imageSrc = null;
 
+    if (dom.fileInput) {
+      dom.fileInput.value = "";
+    }
+
     if (dom.pinImage) {
       dom.pinImage.src = "";
       dom.pinImage.classList.add("hidden");
     }
 
     if (dom.pinPlaceholder) {
-      dom.pinPlaceholder.classList.remove(
-        "hidden"
-      );
+      dom.pinPlaceholder.classList.remove("hidden");
     }
 
     if (dom.removeImageBtn) {
-      dom.removeImageBtn.classList.add(
-        "hidden"
-      );
-    }
-
-    if (dom.fileInput) {
-      dom.fileInput.value = "";
+      dom.removeImageBtn.classList.add("hidden");
     }
 
     resetImagePosition();
@@ -390,232 +276,282 @@
 
 
   function setupUpload() {
-    if (
-      !dom.dropzone ||
-      !dom.fileInput
-    ) {
-      return;
-    }
-
-    dom.fileInput.addEventListener(
+    dom.fileInput?.addEventListener(
       "change",
       function (event) {
-        const files =
-          event.target.files;
+        const file =
+          event.target.files?.[0];
 
-        if (files && files[0]) {
-          handleFile(files[0]);
+        if (file) {
+          handleFile(file);
         }
       }
     );
 
 
-    ["dragenter", "dragover"].forEach(
-      function (eventName) {
-        dom.dropzone.addEventListener(
-          eventName,
-          function (event) {
-            event.preventDefault();
-            event.stopPropagation();
+    if (dom.dropzone) {
+      ["dragenter", "dragover"].forEach(
+        function (eventName) {
+          dom.dropzone.addEventListener(
+            eventName,
+            function (event) {
+              event.preventDefault();
+              event.stopPropagation();
 
-            dom.dropzone.classList.add(
-              "is-dragover"
-            );
+              dom.dropzone.classList.add(
+                "is-dragover"
+              );
+            }
+          );
+        }
+      );
+
+
+      ["dragleave", "drop"].forEach(
+        function (eventName) {
+          dom.dropzone.addEventListener(
+            eventName,
+            function (event) {
+              event.preventDefault();
+              event.stopPropagation();
+
+              dom.dropzone.classList.remove(
+                "is-dragover"
+              );
+            }
+          );
+        }
+      );
+
+
+      dom.dropzone.addEventListener(
+        "drop",
+        function (event) {
+          const file =
+            event.dataTransfer?.files?.[0];
+
+          if (file) {
+            handleFile(file);
           }
-        );
-      }
-    );
+        }
+      );
+    }
 
 
-    ["dragleave", "drop"].forEach(
-      function (eventName) {
-        dom.dropzone.addEventListener(
-          eventName,
-          function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            dom.dropzone.classList.remove(
-              "is-dragover"
-            );
-          }
-        );
-      }
-    );
-
-
-    dom.dropzone.addEventListener(
-      "drop",
+    dom.removeImageBtn?.addEventListener(
+      "click",
       function (event) {
-        const files =
-          event.dataTransfer &&
-          event.dataTransfer.files;
+        event.preventDefault();
+        event.stopPropagation();
 
-        if (files && files[0]) {
-          handleFile(files[0]);
+        clearImage();
+      }
+    );
+  }
+
+
+  /* ==========================================================================
+     7. IMAGE CONTROLS
+     ========================================================================== */
+
+  function setupImageControls() {
+
+    dom.zoomSlider?.addEventListener(
+      "input",
+      function (event) {
+        state.zoom =
+          Number(event.target.value);
+
+        if (dom.zoomValue) {
+          dom.zoomValue.textContent =
+            `${state.zoom}%`;
         }
+
+        applyImageTransform();
       }
     );
 
 
-    if (dom.removeImageBtn) {
-      dom.removeImageBtn.addEventListener(
-        "click",
-        function (event) {
-          event.preventDefault();
-          event.stopPropagation();
+    dom.posXSlider?.addEventListener(
+      "input",
+      function (event) {
+        state.posX =
+          Number(event.target.value);
 
-          clearImage();
-        }
-      );
-    }
+        applyImageTransform();
+      }
+    );
+
+
+    dom.posYSlider?.addEventListener(
+      "input",
+      function (event) {
+        state.posY =
+          Number(event.target.value);
+
+        /*
+          This directly changes object-position Y.
+          0   = top
+          50  = center
+          100 = bottom
+        */
+
+        applyImageTransform();
+      }
+    );
+
+
+    dom.resetPositionBtn?.addEventListener(
+      "click",
+      function () {
+        resetImagePosition();
+      }
+    );
   }
 
 
   /* ==========================================================================
-     9. IMAGE ADJUSTMENTS
+     8. TEXT
      ========================================================================== */
 
-  function setupImagePosition() {
-    if (dom.zoomSlider) {
-      dom.zoomSlider.addEventListener(
-        "input",
-        function (event) {
-          state.zoom =
-            Number(event.target.value);
-
-          if (dom.zoomValue) {
-            dom.zoomValue.textContent =
-              `${state.zoom}%`;
-          }
-
-          applyImageTransform();
-        }
-      );
-    }
-
-
-    if (dom.posXSlider) {
-      dom.posXSlider.addEventListener(
-        "input",
-        function (event) {
-          state.posX =
-            Number(event.target.value);
-
-          applyImageTransform();
-        }
-      );
-    }
-
-
-    if (dom.posYSlider) {
-      dom.posYSlider.addEventListener(
-        "input",
-        function (event) {
-          state.posY =
-            Number(event.target.value);
-
-          applyImageTransform();
-        }
-      );
-    }
-
-
-    if (dom.resetPositionBtn) {
-      dom.resetPositionBtn.addEventListener(
-        "click",
-        function () {
-          resetImagePosition();
-        }
-      );
-    }
-  }
-
-
-  /* ==========================================================================
-     10. TEXT PREVIEW
-     ========================================================================== */
-
-  function updateHeadline() {
+  function renderHeadline() {
     if (!dom.pinHeadline) return;
 
     dom.pinHeadline.textContent =
       state.headline.trim() ||
-      CONFIG.text.headlineFallback;
+      CONFIG.headlineFallback;
   }
 
 
-  function updateSubheadline() {
+  function renderSubheadline() {
     if (!dom.pinSubheadline) return;
 
     dom.pinSubheadline.textContent =
       state.subheadline.trim() ||
-      CONFIG.text.subheadlineFallback;
+      CONFIG.subheadlineFallback;
   }
 
 
-  function setupTextPreview() {
-    if (dom.headlineInput) {
-      dom.headlineInput.addEventListener(
-        "input",
-        function (event) {
-          state.headline =
-            event.target.value;
+  function setupText() {
 
-          updateHeadline();
+    dom.headlineInput?.addEventListener(
+      "input",
+      function (event) {
+        state.headline =
+          event.target.value;
 
-          if (dom.headlineCount) {
-            dom.headlineCount.textContent =
-              `${state.headline.length}/60`;
-          }
+        renderHeadline();
+
+        if (dom.headlineCount) {
+          dom.headlineCount.textContent =
+            `${state.headline.length}/60`;
         }
-      );
-    }
+      }
+    );
 
 
-    if (dom.subheadlineInput) {
-      dom.subheadlineInput.addEventListener(
-        "input",
-        function (event) {
-          state.subheadline =
-            event.target.value;
+    dom.subheadlineInput?.addEventListener(
+      "input",
+      function (event) {
+        state.subheadline =
+          event.target.value;
 
-          updateSubheadline();
+        renderSubheadline();
 
-          if (dom.subheadlineCount) {
-            dom.subheadlineCount.textContent =
-              `${state.subheadline.length}/80`;
-          }
+        if (dom.subheadlineCount) {
+          dom.subheadlineCount.textContent =
+            `${state.subheadline.length}/80`;
         }
-      );
-    }
+      }
+    );
   }
 
 
   /* ==========================================================================
-     11. OVERLAY POSITION
+     9. OVERLAY POSITION
      ========================================================================== */
 
-  function updatePillPosition() {
+  function applyOverlayPosition() {
     if (
-      !dom.styleTogglePill ||
-      !dom.styleToggle
+      !dom.pinTextWrap ||
+      !dom.pinScrim
     ) {
       return;
     }
 
-    const activeButton =
+
+    if (state.style === "bottom") {
+
+      dom.pinTextWrap.className =
+        "absolute inset-x-0 bottom-0 p-[6%] flex flex-col gap-2 text-left items-start";
+
+      dom.pinScrim.className =
+        "absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none";
+
+    }
+
+
+    if (state.style === "center") {
+
+      dom.pinTextWrap.className =
+        "absolute inset-x-0 top-1/2 -translate-y-1/2 p-[6%] flex flex-col gap-2 text-center items-center";
+
+      dom.pinScrim.className =
+        "absolute inset-0 bg-black/35 pointer-events-none";
+
+    }
+
+
+    if (state.style === "top") {
+
+      dom.pinTextWrap.className =
+        "absolute inset-x-0 top-0 p-[6%] flex flex-col gap-2 text-left items-start";
+
+      dom.pinScrim.className =
+        "absolute inset-x-0 top-0 h-[46%] bg-gradient-to-b from-black/70 via-black/25 to-transparent pointer-events-none";
+
+    }
+
+
+    dom.styleToggle
+      ?.querySelectorAll(".style-btn")
+      .forEach(function (button) {
+
+        button.classList.toggle(
+          "is-active",
+          button.dataset.style ===
+            state.style
+        );
+
+      });
+
+
+    requestAnimationFrame(
+      updateStylePill
+    );
+  }
+
+
+  function updateStylePill() {
+    if (
+      !dom.styleToggle ||
+      !dom.styleTogglePill
+    ) {
+      return;
+    }
+
+    const button =
       dom.styleToggle.querySelector(
         `[data-style="${state.style}"]`
       );
 
-    if (!activeButton) return;
+    if (!button) return;
 
-    const toggleRect =
+    const parentRect =
       dom.styleToggle.getBoundingClientRect();
 
     const buttonRect =
-      activeButton.getBoundingClientRect();
+      button.getBoundingClientRect();
 
     dom.styleTogglePill.style.width =
       `${buttonRect.width}px`;
@@ -623,57 +559,17 @@
     dom.styleTogglePill.style.transform =
       `translateX(${
         buttonRect.left -
-        toggleRect.left -
+        parentRect.left -
         4
       }px)`;
   }
 
 
-  function setOverlayStyle(styleKey) {
-    if (!STYLE_PRESETS[styleKey]) {
-      return;
-    }
-
-    state.style = styleKey;
-
-    const preset =
-      STYLE_PRESETS[styleKey];
-
-    if (dom.pinTextWrap) {
-      dom.pinTextWrap.className =
-        preset.wrap;
-    }
-
-    if (dom.pinScrim) {
-      dom.pinScrim.className =
-        preset.scrim;
-    }
-
-    if (dom.styleToggle) {
-      dom.styleToggle
-        .querySelectorAll(".style-btn")
-        .forEach(function (button) {
-          button.classList.toggle(
-            "is-active",
-            button.getAttribute(
-              "data-style"
-            ) === styleKey
-          );
-        });
-    }
-
-    requestAnimationFrame(
-      updatePillPosition
-    );
-  }
-
-
-  function setupStyleToggle() {
-    if (!dom.styleToggle) return;
-
-    dom.styleToggle.addEventListener(
+  function setupOverlay() {
+    dom.styleToggle?.addEventListener(
       "click",
       function (event) {
+
         const button =
           event.target.closest(
             ".style-btn"
@@ -681,71 +577,65 @@
 
         if (!button) return;
 
-        const styleKey =
-          button.getAttribute(
-            "data-style"
-          );
+        const style =
+          button.dataset.style;
 
-        setOverlayStyle(styleKey);
+        if (
+          ![
+            "bottom",
+            "center",
+            "top",
+          ].includes(style)
+        ) {
+          return;
+        }
+
+        state.style = style;
+
+        applyOverlayPosition();
       }
     );
 
 
     window.addEventListener(
       "resize",
-      function () {
-        requestAnimationFrame(
-          updatePillPosition
-        );
-      },
-      { passive: true }
+      updateStylePill
     );
   }
 
 
   /* ==========================================================================
-     12. CUSTOMIZE ACCORDION
+     10. CUSTOMIZE PANEL
      ========================================================================== */
 
-  function setCustomizePanel(open) {
-    state.isCustomizingOpen = open;
+  function setCustomize(open) {
+    state.customizeOpen = open;
 
-    if (dom.customizePanel) {
-      dom.customizePanel.classList.toggle(
-        "is-open",
-        open
-      );
-    }
+    dom.customizePanel?.classList.toggle(
+      "is-open",
+      open
+    );
 
-    if (dom.customizeChevron) {
-      dom.customizeChevron.classList.toggle(
-        "is-open",
-        open
-      );
-    }
+    dom.customizeChevron?.classList.toggle(
+      "is-open",
+      open
+    );
 
-    if (dom.customizeToggleBtn) {
-      dom.customizeToggleBtn.setAttribute(
-        "aria-expanded",
-        open ? "true" : "false"
-      );
-    }
+    dom.customizeToggleBtn?.setAttribute(
+      "aria-expanded",
+      open ? "true" : "false"
+    );
   }
 
 
-  function setupDisclosure() {
-    if (
-      !dom.customizeToggleBtn ||
-      !dom.customizePanel
-    ) {
-      return;
-    }
+  function setupCustomize() {
+    setCustomize(false);
 
-    dom.customizeToggleBtn.addEventListener(
+    dom.customizeToggleBtn?.addEventListener(
       "click",
       function () {
-        setCustomizePanel(
-          !state.isCustomizingOpen
+        setCustomize(
+          !state.customizeOpen
         );
       }
     );
@@ -753,29 +643,25 @@
 
 
   /* ==========================================================================
-     13. FONT SELECTOR
+     11. FONT
      ========================================================================== */
 
-  function applyFont(fontKey) {
-    if (!FONT_FAMILIES[fontKey]) {
-      return;
-    }
+  function applyFont() {
+    if (!dom.pinHeadline) return;
 
-    state.font = fontKey;
-
-    if (dom.pinHeadline) {
-      dom.pinHeadline.style.fontFamily =
-        FONT_FAMILIES[fontKey];
-    }
+    dom.pinHeadline.style.fontFamily =
+      FONT_FAMILIES[state.font] ||
+      FONT_FAMILIES[
+        "league-spartan"
+      ];
   }
 
 
-  function setupFontSelector() {
-    if (!dom.fontSelector) return;
-
-    dom.fontSelector.addEventListener(
+  function setupFonts() {
+    dom.fontSelector?.addEventListener(
       "click",
       function (event) {
+
         const chip =
           event.target.closest(
             ".font-chip"
@@ -783,37 +669,39 @@
 
         if (!chip) return;
 
-        const fontKey =
-          chip.getAttribute(
-            "data-font"
-          );
+        const font =
+          chip.dataset.font;
 
-        if (!FONT_FAMILIES[fontKey]) {
+        if (!FONT_FAMILIES[font]) {
           return;
         }
 
-        applyFont(fontKey);
+        state.font = font;
 
         dom.fontSelector
-          .querySelectorAll(".font-chip")
+          .querySelectorAll(
+            ".font-chip"
+          )
           .forEach(function (item) {
+
             item.classList.toggle(
               "is-active",
               item === chip
             );
+
           });
+
+        applyFont();
       }
     );
   }
 
 
   /* ==========================================================================
-     14. HEADLINE COLOR
+     12. COLOR
      ========================================================================== */
 
-  function applyHeadlineColor(color) {
-    if (!color) return;
-
+  function applyColor(color) {
     state.color = color;
 
     if (dom.pinHeadline) {
@@ -823,28 +711,28 @@
   }
 
 
-  function updateActiveColorSwatch(
-    activeSwatch
-  ) {
-    if (!dom.colorSelector) return;
-
+  function setActiveColor(element) {
     dom.colorSelector
-      .querySelectorAll(".color-swatch")
-      .forEach(function (item) {
-        item.classList.toggle(
+      ?.querySelectorAll(
+        ".color-swatch"
+      )
+      .forEach(function (swatch) {
+
+        swatch.classList.toggle(
           "is-active",
-          item === activeSwatch
+          swatch === element
         );
+
       });
   }
 
 
-  function setupColorSelector() {
-    if (!dom.colorSelector) return;
+  function setupColors() {
 
-    dom.colorSelector.addEventListener(
+    dom.colorSelector?.addEventListener(
       "click",
       function (event) {
+
         const swatch =
           event.target.closest(
             ".color-swatch:not(.color-swatch--custom)"
@@ -853,66 +741,42 @@
         if (!swatch) return;
 
         const color =
-          swatch.getAttribute(
-            "data-color"
-          );
+          swatch.dataset.color;
 
         if (!color) return;
 
-        applyHeadlineColor(color);
-        updateActiveColorSwatch(swatch);
+        applyColor(color);
+        setActiveColor(swatch);
       }
     );
 
 
-    if (
-      dom.customColorInput &&
-      dom.customColorSwatch
-    ) {
-      dom.customColorInput.addEventListener(
-        "input",
-        function (event) {
-          const color =
-            event.target.value;
+    dom.customColorInput?.addEventListener(
+      "input",
+      function (event) {
 
-          applyHeadlineColor(color);
+        applyColor(
+          event.target.value
+        );
 
-          updateActiveColorSwatch(
+        if (
+          dom.customColorSwatch
+        ) {
+          setActiveColor(
             dom.customColorSwatch
           );
         }
-      );
-    }
+
+      }
+    );
   }
 
 
   /* ==========================================================================
-     15. CTA
+     13. CTA
      ========================================================================== */
 
-  function getCurrentCtaText() {
-    if (
-      state.ctaType ===
-      CONFIG.cta.noneValue
-    ) {
-      return "";
-    }
-
-    if (
-      state.ctaType ===
-      CONFIG.cta.customValue
-    ) {
-      return (
-        state.customCta.trim() ||
-        "SHOP NOW"
-      );
-    }
-
-    return state.ctaType;
-  }
-
-
-  function updateCtaDisplay() {
+  function renderCTA() {
     if (
       !dom.pinCtaWrap ||
       !dom.pinCtaLabel
@@ -920,10 +784,8 @@
       return;
     }
 
-    if (
-      state.ctaType ===
-      CONFIG.cta.noneValue
-    ) {
+
+    if (state.ctaType === "none") {
       dom.pinCtaWrap.classList.add(
         "hidden"
       );
@@ -931,810 +793,89 @@
       return;
     }
 
+
     dom.pinCtaWrap.classList.remove(
       "hidden"
     );
 
+
+    let text = state.ctaType;
+
+
+    if (state.ctaType === "custom") {
+      text =
+        state.customCta.trim() ||
+        "SHOP NOW";
+    }
+
+
     dom.pinCtaLabel.textContent =
-      getCurrentCtaText();
+      text;
   }
 
 
-  function setupCtaSelector() {
-    if (!dom.ctaSelect) return;
+  function setupCTA() {
 
-    dom.ctaSelect.addEventListener(
+    dom.ctaSelect?.addEventListener(
       "change",
       function (event) {
+
         state.ctaType =
           event.target.value;
 
-        if (dom.ctaCustomInput) {
-          const showCustom =
-            state.ctaType ===
-            CONFIG.cta.customValue;
 
+        if (dom.ctaCustomInput) {
           dom.ctaCustomInput.classList.toggle(
             "hidden",
-            !showCustom
+            state.ctaType !==
+              "custom"
           );
-
-          if (showCustom) {
-            dom.ctaCustomInput.focus();
-          }
         }
 
-        updateCtaDisplay();
+
+        renderCTA();
       }
     );
 
 
-    if (dom.ctaCustomInput) {
-      dom.ctaCustomInput.addEventListener(
-        "input",
-        function (event) {
-          state.customCta =
-            event.target.value;
+    dom.ctaCustomInput?.addEventListener(
+      "input",
+      function (event) {
 
-          updateCtaDisplay();
-        }
-      );
-    }
-  }
+        state.customCta =
+          event.target.value;
 
-
-  /* ==========================================================================
-     16. EXPORT HELPERS
-     ========================================================================== */
-
-  function waitForNextPaint() {
-    return new Promise(function (resolve) {
-      requestAnimationFrame(function () {
-        requestAnimationFrame(resolve);
-      });
-    });
-  }
-
-
-  function generateFilename() {
-    let filename =
-      state.headline.trim() ||
-      "pinforge-pin";
-
-    filename = filename
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .substring(0, 50);
-
-    if (!filename) {
-      filename = "pinforge-pin";
-    }
-
-    return (
-      `${filename}-1000x1500.png`
-    );
-  }
-
-
-  function isIOSDevice() {
-    return (
-      /iPad|iPhone|iPod/.test(
-        navigator.userAgent
-      ) ||
-      (
-        navigator.platform ===
-          "MacIntel" &&
-        navigator.maxTouchPoints > 1
-      )
+        renderCTA();
+      }
     );
   }
 
 
   /* ==========================================================================
-     17. BUILD EXPORT CLONE
-     ========================================================================== */
-
-  function buildExportClone() {
-    const clone =
-      dom.pinCard.cloneNode(true);
-
-    clone.id = "pinCardExport";
-
-    /*
-      ROOT
-    */
-
-    clone.style.setProperty(
-      "position",
-      "relative",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "width",
-      "1000px",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "height",
-      "1500px",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "min-width",
-      "1000px",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "max-width",
-      "1000px",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "min-height",
-      "1500px",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "max-height",
-      "1500px",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "aspect-ratio",
-      "auto",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "overflow",
-      "hidden",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "border-radius",
-      "0",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "box-shadow",
-      "none",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "transform",
-      "none",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "transition",
-      "none",
-      "important"
-    );
-
-    clone.style.setProperty(
-      "margin",
-      "0",
-      "important"
-    );
-
-
-    /* ======================================================================
-       IMAGE WRAPPER
-       ====================================================================== */
-
-    const imageWrap =
-      clone.querySelector(
-        "#pinImageWrap"
-      );
-
-    if (imageWrap) {
-      imageWrap.style.setProperty(
-        "position",
-        "absolute",
-        "important"
-      );
-
-      imageWrap.style.setProperty(
-        "inset",
-        "0",
-        "important"
-      );
-
-      imageWrap.style.setProperty(
-        "width",
-        "1000px",
-        "important"
-      );
-
-      imageWrap.style.setProperty(
-        "height",
-        "1500px",
-        "important"
-      );
-
-      imageWrap.style.setProperty(
-        "overflow",
-        "hidden",
-        "important"
-      );
-    }
-
-
-    /* ======================================================================
-       IMAGE
-       ====================================================================== */
-
-    const image =
-      clone.querySelector(
-        "#pinImage"
-      );
-
-    if (image && state.imageSrc) {
-      image.src = state.imageSrc;
-
-      image.classList.remove("hidden");
-
-      image.style.setProperty(
-        "display",
-        "block",
-        "important"
-      );
-
-      image.style.setProperty(
-        "position",
-        "absolute",
-        "important"
-      );
-
-      image.style.setProperty(
-        "top",
-        "0",
-        "important"
-      );
-
-      image.style.setProperty(
-        "left",
-        "0",
-        "important"
-      );
-
-      image.style.setProperty(
-        "width",
-        "100%",
-        "important"
-      );
-
-      image.style.setProperty(
-        "height",
-        "100%",
-        "important"
-      );
-
-      /*
-        THE IMPORTANT PART:
-
-        object-fit cover = NEVER stretch image.
-      */
-
-      image.style.setProperty(
-        "object-fit",
-        "cover",
-        "important"
-      );
-
-      image.style.setProperty(
-        "object-position",
-        `${state.posX}% ${state.posY}%`,
-        "important"
-      );
-
-      image.style.setProperty(
-        "transform",
-        `scale(${state.zoom / 100})`,
-        "important"
-      );
-
-      image.style.setProperty(
-        "transform-origin",
-        `${state.posX}% ${state.posY}%`,
-        "important"
-      );
-
-      image.style.setProperty(
-        "max-width",
-        "none",
-        "important"
-      );
-
-      image.style.setProperty(
-        "max-height",
-        "none",
-        "important"
-      );
-
-      image.style.setProperty(
-        "transition",
-        "none",
-        "important"
-      );
-    }
-
-
-    /* ======================================================================
-       PLACEHOLDER
-       ====================================================================== */
-
-    const placeholder =
-      clone.querySelector(
-        "#pinPlaceholder"
-      );
-
-    if (
-      placeholder &&
-      state.imageSrc
-    ) {
-      placeholder.style.display =
-        "none";
-    }
-
-
-    /* ======================================================================
-       SCRIM
-       ====================================================================== */
-
-    const scrim =
-      clone.querySelector(
-        "#pinScrim"
-      );
-
-    if (scrim) {
-      scrim.className = "";
-
-      scrim.style.position =
-        "absolute";
-
-      scrim.style.left = "0";
-      scrim.style.right = "0";
-
-      scrim.style.pointerEvents =
-        "none";
-
-      scrim.style.zIndex = "5";
-
-
-      if (state.style === "bottom") {
-        scrim.style.top = "auto";
-        scrim.style.bottom = "0";
-        scrim.style.height = "50%";
-
-        scrim.style.background =
-          "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 48%, rgba(0,0,0,0) 100%)";
-      }
-
-
-      if (state.style === "top") {
-        scrim.style.top = "0";
-        scrim.style.bottom = "auto";
-        scrim.style.height = "50%";
-
-        scrim.style.background =
-          "linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 48%, rgba(0,0,0,0) 100%)";
-      }
-
-
-      if (state.style === "center") {
-        scrim.style.top = "0";
-        scrim.style.bottom = "0";
-        scrim.style.height = "100%";
-
-        scrim.style.background =
-          "rgba(0,0,0,0.35)";
-      }
-    }
-
-
-    /* ======================================================================
-       TEXT WRAPPER
-       ====================================================================== */
-
-    const textWrap =
-      clone.querySelector(
-        "#pinTextWrap"
-      );
-
-    if (textWrap) {
-      textWrap.className = "";
-
-      textWrap.style.position =
-        "absolute";
-
-      textWrap.style.left = "0";
-      textWrap.style.right = "0";
-
-      textWrap.style.zIndex = "10";
-
-      textWrap.style.padding =
-        "60px";
-
-      textWrap.style.display =
-        "flex";
-
-      textWrap.style.flexDirection =
-        "column";
-
-      textWrap.style.gap =
-        "16px";
-
-
-      if (state.style === "bottom") {
-        textWrap.style.top = "auto";
-        textWrap.style.bottom = "0";
-
-        textWrap.style.alignItems =
-          "flex-start";
-
-        textWrap.style.textAlign =
-          "left";
-
-        textWrap.style.transform =
-          "none";
-      }
-
-
-      if (state.style === "top") {
-        textWrap.style.top = "0";
-        textWrap.style.bottom = "auto";
-
-        textWrap.style.alignItems =
-          "flex-start";
-
-        textWrap.style.textAlign =
-          "left";
-
-        textWrap.style.transform =
-          "none";
-      }
-
-
-      if (state.style === "center") {
-        textWrap.style.top = "50%";
-        textWrap.style.bottom =
-          "auto";
-
-        textWrap.style.alignItems =
-          "center";
-
-        textWrap.style.textAlign =
-          "center";
-
-        textWrap.style.transform =
-          "translateY(-50%)";
-      }
-    }
-
-
-    /* ======================================================================
-       HEADLINE
-       ====================================================================== */
-
-    const headline =
-      clone.querySelector(
-        "#pinHeadline"
-      );
-
-    if (headline) {
-      headline.textContent =
-        state.headline.trim() ||
-        CONFIG.text.headlineFallback;
-
-      headline.className = "";
-
-      headline.style.display =
-        "block";
-
-      headline.style.width =
-        "100%";
-
-      headline.style.margin =
-        "0";
-
-      headline.style.padding =
-        "0";
-
-      headline.style.fontFamily =
-        FONT_FAMILIES[state.font] ||
-        FONT_FAMILIES[
-          "league-spartan"
-        ];
-
-      headline.style.fontSize =
-        "72px";
-
-      headline.style.fontWeight =
-        "700";
-
-      headline.style.lineHeight =
-        "1.08";
-
-      headline.style.letterSpacing =
-        "-0.02em";
-
-      headline.style.color =
-        state.color ||
-        "#ffffff";
-
-      headline.style.overflowWrap =
-        "break-word";
-
-      headline.style.wordBreak =
-        "normal";
-    }
-
-
-    /* ======================================================================
-       SUBHEADLINE
-       ====================================================================== */
-
-    const subheadline =
-      clone.querySelector(
-        "#pinSubheadline"
-      );
-
-    if (subheadline) {
-      subheadline.textContent =
-        state.subheadline.trim() ||
-        CONFIG.text.subheadlineFallback;
-
-      subheadline.className = "";
-
-      subheadline.style.display =
-        "block";
-
-      subheadline.style.width =
-        "100%";
-
-      subheadline.style.margin =
-        "0";
-
-      subheadline.style.padding =
-        "0";
-
-      subheadline.style.fontFamily =
-        "'Inter', sans-serif";
-
-      subheadline.style.fontSize =
-        "34px";
-
-      subheadline.style.fontWeight =
-        "500";
-
-      subheadline.style.lineHeight =
-        "1.3";
-
-      subheadline.style.color =
-        "rgba(255,255,255,0.88)";
-    }
-
-
-    /* ======================================================================
-       CTA
-       ====================================================================== */
-
-    const ctaWrap =
-      clone.querySelector(
-        "#pinCtaWrap"
-      );
-
-    const ctaLabel =
-      clone.querySelector(
-        "#pinCtaLabel"
-      );
-
-    const ctaBadge =
-      ctaWrap
-        ? ctaWrap.querySelector(
-            ":scope > span"
-          )
-        : null;
-
-
-    if (ctaWrap) {
-      ctaWrap.className = "";
-
-      ctaWrap.style.margin = "0";
-      ctaWrap.style.padding = "0";
-
-      ctaWrap.style.display =
-        state.ctaType ===
-        CONFIG.cta.noneValue
-          ? "none"
-          : "block";
-    }
-
-
-    if (
-      ctaBadge &&
-      state.ctaType !==
-        CONFIG.cta.noneValue
-    ) {
-      ctaBadge.className = "";
-
-      ctaBadge.style.display =
-        "inline-flex";
-
-      ctaBadge.style.alignItems =
-        "center";
-
-      ctaBadge.style.justifyContent =
-        "flex-start";
-
-      ctaBadge.style.gap =
-        "12px";
-
-      ctaBadge.style.width =
-        "auto";
-
-      ctaBadge.style.height =
-        "auto";
-
-      ctaBadge.style.margin =
-        "8px 0 0 0";
-
-      ctaBadge.style.padding =
-        "14px 24px";
-
-      ctaBadge.style.backgroundColor =
-        "#ffffff";
-
-      ctaBadge.style.borderRadius =
-        "9999px";
-
-      ctaBadge.style.boxShadow =
-        "0 2px 8px rgba(0,0,0,0.12)";
-
-      ctaBadge.style.whiteSpace =
-        "nowrap";
-    }
-
-
-    /*
-      CTA DOT
-    */
-
-    if (ctaBadge) {
-      const dot =
-        ctaBadge.querySelector(
-          "span:first-child"
-        );
-
-      if (dot) {
-        dot.className = "";
-
-        dot.style.display =
-          "block";
-
-        dot.style.flex =
-          "0 0 12px";
-
-        dot.style.width =
-          "12px";
-
-        dot.style.height =
-          "12px";
-
-        dot.style.borderRadius =
-          "50%";
-
-        dot.style.backgroundColor =
-          "#B88A58";
-      }
-    }
-
-
-    /*
-      CTA TEXT
-
-      We explicitly write the selected CTA again.
-      So LINK IN BIO stays LINK IN BIO in export.
-    */
-
-    if (
-      ctaLabel &&
-      state.ctaType !==
-        CONFIG.cta.noneValue
-    ) {
-      ctaLabel.className = "";
-
-      ctaLabel.textContent =
-        getCurrentCtaText();
-
-      ctaLabel.style.display =
-        "inline-block";
-
-      ctaLabel.style.position =
-        "relative";
-
-      ctaLabel.style.fontFamily =
-        "'Inter', sans-serif";
-
-      ctaLabel.style.fontSize =
-        "22px";
-
-      ctaLabel.style.fontWeight =
-        "700";
-
-      ctaLabel.style.lineHeight =
-        "1.15";
-
-      ctaLabel.style.letterSpacing =
-        "0.04em";
-
-      ctaLabel.style.color =
-        "#1F2937";
-
-      ctaLabel.style.opacity =
-        "1";
-
-      ctaLabel.style.visibility =
-        "visible";
-
-      ctaLabel.style.whiteSpace =
-        "nowrap";
-    }
-
-
-    return clone;
-  }
-
-
-  /* ==========================================================================
-     18. EXPORT PNG
+     14. EXPORT
+     EXACT 1000 × 1500
      ========================================================================== */
 
   async function exportPin() {
+
     if (
-      state.isExporting ||
+      state.exporting ||
       !dom.pinCard ||
       !dom.exportGhost
     ) {
       return;
     }
 
-    state.isExporting = true;
+
+    state.exporting = true;
 
 
-    /* ----------------------------------------------------------------------
-       Loading UI
-       ---------------------------------------------------------------------- */
-
-    if (dom.downloadBtn) {
-      dom.downloadBtn.disabled = true;
-
-      dom.downloadBtn.classList.add(
-        "opacity-90"
-      );
-
-      dom.downloadBtn.innerHTML =
-        `${ICONS.spinner}<span>Generating 1000×1500 Pin...</span>`;
-    }
+    setDownloadState(
+      "loading"
+    );
 
 
     try {
-      /* --------------------------------------------------------------------
-         Wait for fonts
-         -------------------------------------------------------------------- */
 
       if (
         document.fonts &&
@@ -1744,61 +885,354 @@
       }
 
 
-      /* --------------------------------------------------------------------
-         Build clone
-         -------------------------------------------------------------------- */
+      /*
+        IMPORTANT EXPORT STRATEGY
+
+        Instead of stretching the responsive preview itself,
+        we create a 1000 × 1500 clone and explicitly rebuild
+        the dimensions of the important children.
+
+        This prevents the uploaded product image from becoming
+        squashed/gepeng.
+      */
+
 
       const clone =
-        buildExportClone();
+        dom.pinCard.cloneNode(true);
 
 
-      /* --------------------------------------------------------------------
-         Prepare export host
-         -------------------------------------------------------------------- */
+      clone.id =
+        "pinCardExport";
 
-      dom.exportGhost.innerHTML = "";
 
-      dom.exportGhost.style.setProperty(
-        "position",
-        "fixed",
-        "important"
-      );
+      clone.style.width =
+        "1000px";
 
-      dom.exportGhost.style.setProperty(
-        "left",
-        "-10000px",
-        "important"
-      );
+      clone.style.height =
+        "1500px";
 
-      dom.exportGhost.style.setProperty(
-        "top",
-        "0",
-        "important"
-      );
+      clone.style.minWidth =
+        "1000px";
 
-      dom.exportGhost.style.setProperty(
-        "width",
-        "1000px",
-        "important"
-      );
+      clone.style.maxWidth =
+        "1000px";
 
-      dom.exportGhost.style.setProperty(
-        "height",
-        "1500px",
-        "important"
-      );
+      clone.style.aspectRatio =
+        "2 / 3";
 
-      dom.exportGhost.style.setProperty(
-        "overflow",
-        "hidden",
-        "important"
-      );
+      clone.style.position =
+        "relative";
 
-      dom.exportGhost.style.setProperty(
-        "pointer-events",
-        "none",
-        "important"
-      );
+      clone.style.overflow =
+        "hidden";
+
+      clone.style.borderRadius =
+        "0";
+
+      clone.style.transform =
+        "none";
+
+      clone.style.boxShadow =
+        "none";
+
+
+      /*
+        IMAGE
+      */
+
+      const exportImageWrap =
+        clone.querySelector(
+          "#pinImageWrap"
+        );
+
+
+      if (exportImageWrap) {
+        exportImageWrap.style.position =
+          "absolute";
+
+        exportImageWrap.style.inset =
+          "0";
+
+        exportImageWrap.style.width =
+          "1000px";
+
+        exportImageWrap.style.height =
+          "1500px";
+
+        exportImageWrap.style.overflow =
+          "hidden";
+      }
+
+
+      const exportImage =
+        clone.querySelector(
+          "#pinImage"
+        );
+
+
+      if (exportImage) {
+
+        exportImage.style.position =
+          "absolute";
+
+        exportImage.style.inset =
+          "0";
+
+        exportImage.style.width =
+          "100%";
+
+        exportImage.style.height =
+          "100%";
+
+        /*
+          THIS is what prevents distortion.
+        */
+
+        exportImage.style.objectFit =
+          "cover";
+
+        exportImage.style.objectPosition =
+          `${state.posX}% ${state.posY}%`;
+
+        exportImage.style.transform =
+          `scale(${state.zoom / 100})`;
+
+        exportImage.style.transformOrigin =
+          "center center";
+
+        exportImage.style.maxWidth =
+          "none";
+
+        exportImage.style.display =
+          state.imageSrc
+            ? "block"
+            : "none";
+      }
+
+
+      /*
+        SCRIM
+      */
+
+      const exportScrim =
+        clone.querySelector(
+          "#pinScrim"
+        );
+
+
+      if (exportScrim) {
+
+        exportScrim.style.zIndex =
+          "5";
+
+      }
+
+
+      /*
+        TEXT WRAPPER
+      */
+
+      const exportText =
+        clone.querySelector(
+          "#pinTextWrap"
+        );
+
+
+      if (exportText) {
+
+        exportText.style.zIndex =
+          "10";
+
+        /*
+          Preview uses 6% padding.
+          6% of 1000 = 60px.
+        */
+
+        exportText.style.padding =
+          "60px";
+
+        exportText.style.gap =
+          "18px";
+
+      }
+
+
+      /*
+        HEADLINE
+      */
+
+      const exportHeadline =
+        clone.querySelector(
+          "#pinHeadline"
+        );
+
+
+      if (exportHeadline) {
+
+        exportHeadline.style.fontFamily =
+          FONT_FAMILIES[state.font];
+
+        exportHeadline.style.color =
+          state.color;
+
+        exportHeadline.style.fontSize =
+          "72px";
+
+        exportHeadline.style.lineHeight =
+          "1.08";
+
+        exportHeadline.style.fontWeight =
+          "700";
+
+      }
+
+
+      /*
+        SUBHEADLINE
+      */
+
+      const exportSub =
+        clone.querySelector(
+          "#pinSubheadline"
+        );
+
+
+      if (exportSub) {
+
+        exportSub.style.fontSize =
+          "34px";
+
+        exportSub.style.lineHeight =
+          "1.3";
+
+      }
+
+
+      /*
+        CTA
+
+        Explicitly rebuild CTA dimensions so Tailwind styles
+        don't disappear during html2canvas export.
+      */
+
+      const exportCtaWrap =
+        clone.querySelector(
+          "#pinCtaWrap"
+        );
+
+
+      const exportCtaLabel =
+        clone.querySelector(
+          "#pinCtaLabel"
+        );
+
+
+      if (exportCtaWrap) {
+
+        exportCtaWrap.style.display =
+          state.ctaType === "none"
+            ? "none"
+            : "block";
+
+        exportCtaWrap.style.marginTop =
+          "8px";
+
+      }
+
+
+      if (
+        exportCtaWrap &&
+        state.ctaType !== "none"
+      ) {
+
+        const badge =
+          exportCtaWrap.querySelector(
+            "span"
+          );
+
+
+        if (badge) {
+
+          badge.style.display =
+            "inline-flex";
+
+          badge.style.alignItems =
+            "center";
+
+          badge.style.width =
+            "fit-content";
+
+          badge.style.background =
+            "rgba(255,255,255,0.95)";
+
+          badge.style.borderRadius =
+            "9999px";
+
+          badge.style.padding =
+            "14px 24px";
+
+          badge.style.gap =
+            "10px";
+
+        }
+
+      }
+
+
+      if (exportCtaLabel) {
+
+        let ctaText =
+          state.ctaType;
+
+
+        if (
+          state.ctaType ===
+          "custom"
+        ) {
+
+          ctaText =
+            state.customCta.trim() ||
+            "SHOP NOW";
+
+        }
+
+
+        exportCtaLabel.textContent =
+          ctaText;
+
+        exportCtaLabel.style.display =
+          "inline";
+
+        exportCtaLabel.style.fontSize =
+          "22px";
+
+        exportCtaLabel.style.lineHeight =
+          "1";
+
+        exportCtaLabel.style.fontWeight =
+          "700";
+
+        exportCtaLabel.style.color =
+          "#1F2937";
+
+        exportCtaLabel.style.letterSpacing =
+          "0.04em";
+
+      }
+
+
+      /*
+        EXPORT HOST
+      */
+
+      dom.exportGhost.innerHTML =
+        "";
+
+      dom.exportGhost.style.width =
+        "1000px";
+
+      dom.exportGhost.style.height =
+        "1500px";
 
       dom.exportGhost.appendChild(
         clone
@@ -1806,53 +1240,54 @@
 
 
       /*
-        Let browser calculate the new
-        1000 × 1500 layout before capture.
+        Give browser one frame to calculate
+        the new 1000×1500 layout.
       */
 
-      await waitForNextPaint();
+      await new Promise(function (resolve) {
+
+        requestAnimationFrame(function () {
+
+          requestAnimationFrame(
+            resolve
+          );
+
+        });
+
+      });
 
 
-      /* --------------------------------------------------------------------
-         Wait for cloned image
-         -------------------------------------------------------------------- */
-
-      const exportImage =
-        clone.querySelector(
-          "#pinImage"
-        );
+      /*
+        Ensure cloned image is decoded before canvas capture.
+      */
 
       if (
         exportImage &&
-        state.imageSrc &&
-        !exportImage.complete
+        exportImage.src
       ) {
-        await new Promise(function (
-          resolve
-        ) {
-          exportImage.onload =
-            resolve;
 
-          exportImage.onerror =
-            resolve;
-        });
+        try {
+
+          if (exportImage.decode) {
+            await exportImage.decode();
+          }
+
+        } catch (_) {
+          // Safe fallback.
+        }
+
       }
 
-
-      await waitForNextPaint();
-
-
-      /* --------------------------------------------------------------------
-         Render
-         -------------------------------------------------------------------- */
 
       if (
         typeof html2canvas ===
         "undefined"
       ) {
+
         throw new Error(
           "html2canvas is not loaded."
         );
+
       }
 
 
@@ -1860,245 +1295,125 @@
         await html2canvas(
           clone,
           {
-            width:
-              CONFIG.export.width,
-
-            height:
-              CONFIG.export.height,
+            width: 1000,
+            height: 1500,
 
             scale: 1,
 
             useCORS: true,
+
             allowTaint: true,
 
-            backgroundColor: null,
+            backgroundColor:
+              "#ffffff",
 
             logging: false,
 
             scrollX: 0,
             scrollY: 0,
-
-            windowWidth:
-              CONFIG.export.width,
-
-            windowHeight:
-              CONFIG.export.height,
           }
         );
 
-
-      /* --------------------------------------------------------------------
-         Safety check
-         -------------------------------------------------------------------- */
-
-      if (
-        canvas.width !==
-          CONFIG.export.width ||
-        canvas.height !==
-          CONFIG.export.height
-      ) {
-        console.warn(
-          "Unexpected export size:",
-          canvas.width,
-          canvas.height
-        );
-      }
-
-
-      const filename =
-        generateFilename();
-
-
-      /* --------------------------------------------------------------------
-         iPhone / iPad / Safari
-         -------------------------------------------------------------------- */
-
-      if (isIOSDevice()) {
-        /*
-          iOS Safari is unreliable with:
-          <a download="file.png">
-
-          The most reliable browser-only method is
-          opening the generated PNG itself.
-
-          User can then:
-          long press -> Save to Photos
-          or Share -> Save to Files
-        */
-
-        const dataURL =
-          canvas.toDataURL(
-            "image/png",
-            1
-          );
-
-
-        const imageWindow =
-          window.open("", "_blank");
-
-
-        if (imageWindow) {
-          imageWindow.document.open();
-
-          imageWindow.document.write(`
-            <!DOCTYPE html>
-
-            <html>
-              <head>
-                <meta charset="UTF-8">
-
-                <meta
-                  name="viewport"
-                  content="width=device-width, initial-scale=1, viewport-fit=cover"
-                >
-
-                <title>${filename}</title>
-
-                <style>
-                  * {
-                    box-sizing: border-box;
-                  }
-
-                  html,
-                  body {
-                    margin: 0;
-                    padding: 0;
-                    width: 100%;
-                    min-height: 100%;
-                    background: #111827;
-                  }
-
-                  body {
-                    display: flex;
-                    align-items: flex-start;
-                    justify-content: center;
-                  }
-
-                  img {
-                    display: block;
-                    width: 100%;
-                    max-width: 1000px;
-                    height: auto;
-                    margin: 0 auto;
-                  }
-                </style>
-              </head>
-
-              <body>
-                <img
-                  src="${dataURL}"
-                  alt="PinForge Pinterest Pin"
-                >
-              </body>
-            </html>
-          `);
-
-          imageWindow.document.close();
-
-        } else {
-          window.location.href =
-            dataURL;
-        }
-
-      } else {
-
-        /* ------------------------------------------------------------------
-           Desktop / Android
-           ------------------------------------------------------------------ */
-
-        const blob =
-          await new Promise(function (
-            resolve
-          ) {
-            canvas.toBlob(
-              resolve,
-              "image/png",
-              1
-            );
-          });
-
-
-        if (!blob) {
-          throw new Error(
-            "Unable to create PNG."
-          );
-        }
-
-
-        const blobURL =
-          URL.createObjectURL(
-            blob
-          );
-
-
-        const link =
-          document.createElement(
-            "a"
-          );
-
-        link.href =
-          blobURL;
-
-        link.download =
-          filename;
-
-        document.body.appendChild(
-          link
-        );
-
-        link.click();
-
-        link.remove();
-
-
-        setTimeout(function () {
-          URL.revokeObjectURL(
-            blobURL
-          );
-        }, 5000);
-      }
-
-
-      /* --------------------------------------------------------------------
-         Cleanup
-         -------------------------------------------------------------------- */
 
       dom.exportGhost.innerHTML =
         "";
 
 
-      /* --------------------------------------------------------------------
-         Success UI
-         -------------------------------------------------------------------- */
+      /*
+        Safety check.
+      */
 
-      if (dom.downloadBtn) {
-        dom.downloadBtn.classList.add(
-          "pf-success"
+      console.log(
+        "Export size:",
+        canvas.width,
+        canvas.height
+      );
+
+
+      /*
+        FILENAME
+      */
+
+      let slug =
+        state.headline.trim() ||
+        "pinforge-pin";
+
+
+      slug = slug
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9]+/g,
+          "-"
+        )
+        .replace(
+          /^-+|-+$/g,
+          ""
+        )
+        .substring(
+          0,
+          45
         );
 
-        dom.downloadBtn.innerHTML =
-          `${ICONS.check}<span>Pin Ready!</span>`;
+
+      const filename =
+        `${slug}-1000x1500.png`;
+
+
+      /*
+        DOWNLOAD
+
+        Use Blob first because it is substantially
+        lighter than giant base64 data URLs.
+      */
+
+      const blob =
+        await new Promise(
+          function (resolve) {
+
+            canvas.toBlob(
+              resolve,
+              "image/png",
+              1
+            );
+
+          }
+        );
+
+
+      if (!blob) {
+
+        downloadDataUrl(
+          canvas.toDataURL(
+            "image/png"
+          ),
+          filename
+        );
+
+      } else {
+
+        await downloadBlob(
+          blob,
+          filename
+        );
+
       }
 
 
-      setTimeout(function () {
-        if (dom.downloadBtn) {
-          dom.downloadBtn.disabled =
-            false;
+      setDownloadState(
+        "success"
+      );
 
-          dom.downloadBtn.classList.remove(
-            "opacity-90",
-            "pf-success"
+
+      setTimeout(
+        function () {
+
+          setDownloadState(
+            "normal"
           );
 
-          dom.downloadBtn.innerHTML =
-            `${ICONS.download}<span>Download PNG</span>`;
-        }
-
-        state.isExporting =
-          false;
-
-      }, CONFIG.successMessageDurationMs);
+        },
+        CONFIG.successDuration
+      );
 
 
     } catch (error) {
@@ -2113,185 +1428,434 @@
         "";
 
 
-      if (dom.downloadBtn) {
-        dom.downloadBtn.disabled =
-          false;
-
-        dom.downloadBtn.classList.remove(
-          "opacity-90",
-          "pf-success"
-        );
-
-        dom.downloadBtn.innerHTML =
-          `${ICONS.download}<span>Export Failed — Retry</span>`;
-      }
+      setDownloadState(
+        "error"
+      );
 
 
-      state.isExporting =
+      setTimeout(
+        function () {
+
+          setDownloadState(
+            "normal"
+          );
+
+        },
+        1800
+      );
+
+
+    } finally {
+
+      state.exporting =
         false;
+
     }
-  }
 
-
-  function setupExporter() {
-    if (!dom.downloadBtn) return;
-
-    dom.downloadBtn.addEventListener(
-      "click",
-      exportPin
-    );
   }
 
 
   /* ==========================================================================
-     19. HEADER EFFECT
+     15. DOWNLOAD HELPERS
      ========================================================================== */
 
-  function setupChromeEffects() {
-    if (!dom.siteHeader) return;
+  function isIOS() {
+
+    return (
+      /iPad|iPhone|iPod/.test(
+        navigator.userAgent
+      ) ||
+      (
+        navigator.platform ===
+          "MacIntel" &&
+        navigator.maxTouchPoints >
+          1
+      )
+    );
+
+  }
+
+
+  async function downloadBlob(
+    blob,
+    filename
+  ) {
+
+    const url =
+      URL.createObjectURL(blob);
+
+
+    /*
+      iPhone/iPad Safari often ignores
+      <a download> for blob URLs.
+
+      Opening the generated PNG is more reliable.
+      User can then Save Image / Save to Files.
+    */
+
+    if (isIOS()) {
+
+      const newWindow =
+        window.open(
+          url,
+          "_blank"
+        );
+
+
+      if (!newWindow) {
+
+        window.location.href =
+          url;
+
+      }
+
+
+      /*
+        Don't revoke immediately.
+        Safari still needs the URL.
+      */
+
+      setTimeout(
+        function () {
+
+          URL.revokeObjectURL(
+            url
+          );
+
+        },
+        60000
+      );
+
+
+      return;
+
+    }
+
+
+    const link =
+      document.createElement(
+        "a"
+      );
+
+
+    link.href =
+      url;
+
+    link.download =
+      filename;
+
+
+    document.body.appendChild(
+      link
+    );
+
+
+    link.click();
+
+
+    link.remove();
+
+
+    setTimeout(
+      function () {
+
+        URL.revokeObjectURL(
+          url
+        );
+
+      },
+      5000
+    );
+
+  }
+
+
+  function downloadDataUrl(
+    dataUrl,
+    filename
+  ) {
+
+    const link =
+      document.createElement(
+        "a"
+      );
+
+
+    link.href =
+      dataUrl;
+
+    link.download =
+      filename;
+
+
+    document.body.appendChild(
+      link
+    );
+
+
+    link.click();
+
+
+    link.remove();
+
+  }
+
+
+  /* ==========================================================================
+     16. DOWNLOAD BUTTON UI
+     ========================================================================== */
+
+  function setDownloadState(mode) {
+
+    if (!dom.downloadBtn) {
+      return;
+    }
+
+
+    if (mode === "loading") {
+
+      dom.downloadBtn.disabled =
+        true;
+
+      dom.downloadBtn.innerHTML = `
+        <svg class="pf-spin"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          stroke-width="2">
+          <circle
+            cx="12"
+            cy="12"
+            r="9"
+            stroke-opacity="0.25"
+          />
+          <path
+            d="M21 12a9 9 0 0 0-9-9"
+          />
+        </svg>
+
+        <span>
+          Generating 1000×1500...
+        </span>
+      `;
+
+      return;
+
+    }
+
+
+    if (mode === "success") {
+
+      dom.downloadBtn.disabled =
+        false;
+
+      dom.downloadBtn.classList.add(
+        "pf-success"
+      );
+
+      dom.downloadBtn.innerHTML = `
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M5 13l4 4L19 7"/>
+        </svg>
+
+        <span>Pin Ready!</span>
+      `;
+
+      return;
+
+    }
+
+
+    if (mode === "error") {
+
+      dom.downloadBtn.disabled =
+        false;
+
+      dom.downloadBtn.innerHTML =
+        "<span>Export Failed — Retry</span>";
+
+      return;
+
+    }
+
+
+    dom.downloadBtn.disabled =
+      false;
+
+    dom.downloadBtn.classList.remove(
+      "pf-success"
+    );
+
+    dom.downloadBtn.innerHTML = `
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="white"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round">
+
+        <path d="M12 16V4M12 16l-4-4M12 16l4-4"/>
+        <path d="M4 20h16"/>
+
+      </svg>
+
+      <span>Download PNG</span>
+    `;
+
+  }
+
+
+  /* ==========================================================================
+     17. HEADER
+     ========================================================================== */
+
+  function setupHeader() {
 
     window.addEventListener(
       "scroll",
       function () {
-        dom.siteHeader.classList.toggle(
+
+        dom.siteHeader?.classList.toggle(
           "is-scrolled",
-
-          window.scrollY >
-            CONFIG
-              .headerScrollThresholdPx
+          window.scrollY > 8
         );
-      },
 
-      { passive: true }
+      },
+      {
+        passive: true,
+      }
     );
+
   }
 
 
   /* ==========================================================================
-     20. INITIAL STATE
+     18. INITIAL STATE
      ========================================================================== */
 
   function setInitialState() {
 
-    /* Image */
-
     resetImagePosition();
 
 
-    /* Text */
+    state.style =
+      "bottom";
 
-    state.headline =
-      dom.headlineInput
-        ? dom.headlineInput.value
-        : "";
-
-    state.subheadline =
-      dom.subheadlineInput
-        ? dom.subheadlineInput.value
-        : "";
-
-    updateHeadline();
-    updateSubheadline();
+    applyOverlayPosition();
 
 
-    /* Counters */
+    state.font =
+      "league-spartan";
 
-    if (dom.headlineCount) {
-      dom.headlineCount.textContent =
-        `${state.headline.length}/60`;
-    }
-
-    if (dom.subheadlineCount) {
-      dom.subheadlineCount.textContent =
-        `${state.subheadline.length}/80`;
-    }
+    applyFont();
 
 
-    /* Overlay */
+    state.color =
+      "#ffffff";
 
-    setOverlayStyle("bottom");
-
-
-    /* Font */
-
-    applyFont(
-      "league-spartan"
-    );
-
-
-    /* Headline color */
-
-    applyHeadlineColor(
+    applyColor(
       "#ffffff"
     );
 
 
-    /* CTA */
-
     state.ctaType =
-      CONFIG.cta.defaultValue;
+      "SHOP ON ETSY";
 
-    state.customCta = "";
 
     if (dom.ctaSelect) {
+
       dom.ctaSelect.value =
-        CONFIG.cta.defaultValue;
+        "SHOP ON ETSY";
+
     }
 
-    if (dom.ctaCustomInput) {
-      dom.ctaCustomInput.classList.add(
-        "hidden"
-      );
+
+    renderCTA();
+
+
+    setCustomize(false);
+
+
+    renderHeadline();
+
+    renderSubheadline();
+
+
+    if (dom.headlineCount) {
+
+      dom.headlineCount.textContent =
+        "0/60";
+
     }
 
-    updateCtaDisplay();
 
+    if (dom.subheadlineCount) {
 
-    /* Customize starts closed */
+      dom.subheadlineCount.textContent =
+        "0/80";
 
-    setCustomizePanel(false);
+    }
 
-
-    /* Pill */
 
     setTimeout(
-      updatePillPosition,
+      updateStylePill,
       100
     );
+
   }
 
 
   /* ==========================================================================
-     21. INIT
+     19. INIT
      ========================================================================== */
 
   function init() {
+
     setupUpload();
 
-    setupImagePosition();
+    setupImageControls();
 
-    setupTextPreview();
+    setupText();
 
-    setupStyleToggle();
+    setupOverlay();
 
-    setupDisclosure();
+    setupCustomize();
 
-    setupFontSelector();
+    setupFonts();
 
-    setupColorSelector();
+    setupColors();
 
-    setupCtaSelector();
+    setupCTA();
 
-    setupExporter();
+    setupHeader();
 
-    setupChromeEffects();
+
+    dom.downloadBtn?.addEventListener(
+      "click",
+      exportPin
+    );
+
 
     setInitialState();
 
 
     console.log(
-      "PinForge v0.2 initialized ✨"
+      "PinForge stable build initialized ✨"
     );
+
   }
 
 
@@ -2299,13 +1863,16 @@
     document.readyState ===
     "loading"
   ) {
+
     document.addEventListener(
       "DOMContentLoaded",
       init
     );
 
   } else {
+
     init();
+
   }
 
 })();
