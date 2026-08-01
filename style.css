@@ -590,3 +590,113 @@ button {
   }
 
 }
+/* ==========================================================================
+   PinForge v0.2.2 — Mobile Live Preview Patch
+   APPEND THIS TO THE VERY BOTTOM OF style.css
+   ========================================================================== */
+
+@media (max-width: 1023px) {
+
+  /*
+   * Normal pin stays exactly as designed.
+   * It only becomes compact after JS adds
+   * .pf-mobile-live-preview while scrolling.
+   */
+  #pinCard {
+    transition:
+      width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.25s ease;
+  }
+
+  #pinCard.pf-mobile-live-preview {
+    position: fixed !important;
+
+    top: 76px !important;
+    right: 14px !important;
+    left: auto !important;
+    bottom: auto !important;
+
+    width: 128px !important;
+    max-width: 128px !important;
+    height: auto !important;
+
+    aspect-ratio: 2 / 3 !important;
+
+    margin: 0 !important;
+
+    z-index: 999 !important;
+
+    border-radius: 12px !important;
+
+    box-shadow:
+      0 12px 32px rgba(17, 24, 39, 0.20),
+      0 3px 10px rgba(17, 24, 39, 0.10) !important;
+
+    overflow: hidden;
+
+    animation: pfMiniPreviewIn 0.25s
+      cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /*
+   * Text inside mini preview must shrink too.
+   * Otherwise headline stays huge.
+   */
+  #pinCard.pf-mobile-live-preview .pin-headline,
+  #pinCard.pf-mobile-live-preview #pinHeadline {
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+  }
+
+  #pinCard.pf-mobile-live-preview .pin-subheadline,
+  #pinCard.pf-mobile-live-preview #pinSubheadline {
+    font-size: 5px !important;
+    line-height: 1.2 !important;
+  }
+
+  #pinCard.pf-mobile-live-preview #pinTextWrap {
+    gap: 3px !important;
+  }
+
+  #pinCard.pf-mobile-live-preview #pinCtaWrap {
+    transform: scale(0.42);
+    transform-origin: left center;
+    margin-top: -2px;
+    margin-bottom: -2px;
+  }
+
+  #pinCard.pf-mobile-live-preview #pinCtaLabel {
+    white-space: nowrap;
+  }
+}
+
+
+@keyframes pfMiniPreviewIn {
+
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+}
+
+
+/* Extra breathing room for very small iPhones */
+
+@media (max-width: 380px) {
+
+  #pinCard.pf-mobile-live-preview {
+    width: 112px !important;
+    max-width: 112px !important;
+
+    top: 72px !important;
+    right: 10px !important;
+  }
+
+}
