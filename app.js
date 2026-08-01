@@ -945,8 +945,12 @@
   }
 
 
-  /* ==========================================================================
-     16. EXPORT HELPERS
+    /* ==========================================================================
+     16. EXPORT v0.4
+     Fix:
+     - No stretched / squashed product image
+     - CTA text always visible
+     - Exact 1000 × 1500
      ========================================================================== */
 
   function makeFilename() {
@@ -985,14 +989,10 @@
           r="9"
           stroke-opacity="0.3"
         />
-        <path
-          d="M21 12a9 9 0 0 0-9-9"
-        />
+        <path d="M21 12a9 9 0 0 0-9-9" />
       </svg>
 
-      <span>
-        Generating 1000×1500...
-      </span>
+      <span>Generating 1000×1500...</span>
     `;
   }
 
@@ -1000,9 +1000,7 @@
   function setExportButtonSuccess() {
     if (!dom.downloadBtn) return;
 
-    dom.downloadBtn.classList.add(
-      "pf-success"
-    );
+    dom.downloadBtn.classList.add("pf-success");
 
     dom.downloadBtn.innerHTML = `
       <svg
@@ -1027,10 +1025,7 @@
     if (!dom.downloadBtn) return;
 
     dom.downloadBtn.disabled = false;
-
-    dom.downloadBtn.classList.remove(
-      "pf-success"
-    );
+    dom.downloadBtn.classList.remove("pf-success");
 
     dom.downloadBtn.innerHTML = `
       <svg
@@ -1052,61 +1047,374 @@
   }
 
 
-  function waitForImage(image) {
-    if (!image || !image.src) {
-      return Promise.resolve();
+  /* ==========================================================================
+     EXPORT IMAGE
+
+     IMPORTANT:
+
+     We do NOT export the real <img>.
+
+     html2canvas + object-fit + transformed <img>
+     is the source of the squashed-image bug.
+
+     Instead:
+     1. Hide the cloned <img>.
+     2. Create an absolute DIV.
+     3. Use the uploaded image as background-image.
+     4. background-size: cover preserves aspect ratio.
+     5. background-position handles Position X / Y.
+     ========================================================================== */
+
+  function buildExportImageLayer(clone) {
+    const imageWrap =
+      clone.querySelector("#pinImageWrap");
+
+    const originalCloneImage =
+      clone.querySelector("#pinImage");
+
+    if (!imageWrap) return;
+
+
+    /*
+      Hide cloned <img>.
+    */
+
+    if (originalCloneImage) {
+      originalCloneImage.style.display = "none";
     }
 
-    if (image.complete) {
-      if (image.decode) {
-        return image.decode().catch(function () {});
-      }
 
-      return Promise.resolve();
+    /*
+      No image uploaded?
+      Keep placeholder/background.
+    */
+
+    if (!state.imageSrc) {
+      return;
     }
 
-    return new Promise(function (resolve) {
-      image.onload = resolve;
-      image.onerror = resolve;
-    });
+
+    /*
+      Hide placeholder.
+    */
+
+    const placeholder =
+      clone.querySelector("#pinPlaceholder");
+
+    if (placeholder) {
+      placeholder.style.display = "none";
+    }
+
+
+    /*
+      Create clean export image layer.
+    */
+
+    const imageLayer =
+      document.createElement("div");
+
+    imageLayer.className =
+      "pf-export-image-layer";
+
+
+    imageLayer.style.position =
+      "absolute";
+
+    imageLayer.style.inset =
+      "0";
+
+    imageLayer.style.width =
+      "100%";
+
+    imageLayer.style.height =
+      "100%";
+
+
+    imageLayer.style.backgroundImage =
+      `url("${state.imageSrc}")`;
+
+    imageLayer.style.backgroundRepeat =
+      "no-repeat";
+
+    imageLayer.style.backgroundPosition =
+      `${state.posX}% ${state.posY}%`;
+
+
+    /*
+      Zoom:
+      100 = cover
+      150 = 150% of normal cover crop
+      etc.
+
+      CSS background-size with percentages on BOTH axes
+      would distort the image.
+
+      So we DON'T use:
+      background-size: 150% 150%;
+
+      Instead we scale the entire cover layer.
+    */
+
+    imageLayer.style.backgroundSize =
+      "cover";
+
+    imageLayer.style.transform =
+      `scale(${state.zoom / 100})`;
+
+    imageLayer.style.transformOrigin =
+      `${state.posX}% ${state.posY}%`;
+
+    imageLayer.style.zIndex =
+      "1";
+
+
+    /*
+      Image wrapper itself.
+    */
+
+    imageWrap.style.position =
+      "absolute";
+
+    imageWrap.style.inset =
+      "0";
+
+    imageWrap.style.width =
+      "100%";
+
+    imageWrap.style.height =
+      "100%";
+
+    imageWrap.style.overflow =
+      "hidden";
+
+
+    /*
+      Insert image behind overlays.
+    */
+
+    imageWrap.appendChild(
+      imageLayer
+    );
   }
 
 
   /* ==========================================================================
-     17. BUILD EXPORT CARD
+     EXPORT CTA
 
-     Export is built from current card but then normalized.
+     We replace the CTA badge entirely.
 
-     Most important:
-     - fixed 1000×1500
-     - object-fit cover
-     - object-position X/Y
-     - scale zoom
-     - CTA gets explicit dark text
+     This avoids html2canvas inheriting Tailwind's
+     text-white / opacity weirdness.
+     ========================================================================== */
+
+  function rebuildExportCTA(clone) {
+    const oldWrap =
+      clone.querySelector("#pinCtaWrap");
+
+    if (!oldWrap) return;
+
+
+    /*
+      Hide CTA completely if None selected.
+    */
+
+    if (state.ctaType === "none") {
+      oldWrap.style.display = "none";
+      return;
+    }
+
+
+    /*
+      Current CTA text.
+    */
+
+    const text =
+      state.ctaType === "custom"
+        ? (
+            state.customCta.trim() ||
+            "SHOP NOW"
+          )
+        : state.ctaType;
+
+
+    /*
+      Remove all inherited badge contents.
+    */
+
+    oldWrap.innerHTML = "";
+
+    oldWrap.className = "";
+
+    oldWrap.style.display =
+      "block";
+
+    oldWrap.style.position =
+      "relative";
+
+    oldWrap.style.zIndex =
+      "20";
+
+    oldWrap.style.visibility =
+      "visible";
+
+    oldWrap.style.opacity =
+      "1";
+
+    oldWrap.style.marginTop =
+      "12px";
+
+
+    /*
+      New badge.
+    */
+
+    const badge =
+      document.createElement("div");
+
+    badge.style.display =
+      "inline-flex";
+
+    badge.style.alignItems =
+      "center";
+
+    badge.style.justifyContent =
+      "center";
+
+    badge.style.gap =
+      "12px";
+
+    badge.style.width =
+      "auto";
+
+    badge.style.minHeight =
+      "56px";
+
+    badge.style.padding =
+      "12px 26px";
+
+    badge.style.boxSizing =
+      "border-box";
+
+    badge.style.backgroundColor =
+      "#FFFFFF";
+
+    badge.style.borderRadius =
+      "9999px";
+
+    badge.style.opacity =
+      "1";
+
+    badge.style.visibility =
+      "visible";
+
+
+    /*
+      Gold dot.
+    */
+
+    const dot =
+      document.createElement("span");
+
+    dot.style.display =
+      "block";
+
+    dot.style.width =
+      "12px";
+
+    dot.style.height =
+      "12px";
+
+    dot.style.minWidth =
+      "12px";
+
+    dot.style.borderRadius =
+      "50%";
+
+    dot.style.backgroundColor =
+      "#B88A58";
+
+
+    /*
+      CTA label.
+
+      Explicit BLACK text.
+      No Tailwind dependency.
+    */
+
+    const label =
+      document.createElement("span");
+
+    label.textContent =
+      text;
+
+    label.style.display =
+      "block";
+
+    label.style.margin =
+      "0";
+
+    label.style.padding =
+      "0";
+
+    label.style.color =
+      "#1F2937";
+
+    label.style.webkitTextFillColor =
+      "#1F2937";
+
+    label.style.fontFamily =
+      "'Inter', Arial, sans-serif";
+
+    label.style.fontSize =
+      "24px";
+
+    label.style.fontWeight =
+      "700";
+
+    label.style.lineHeight =
+      "1";
+
+    label.style.letterSpacing =
+      "0.04em";
+
+    label.style.whiteSpace =
+      "nowrap";
+
+    label.style.opacity =
+      "1";
+
+    label.style.visibility =
+      "visible";
+
+
+    badge.appendChild(dot);
+    badge.appendChild(label);
+
+    oldWrap.appendChild(badge);
+  }
+
+
+  /* ==========================================================================
+     BUILD EXPORT CARD
      ========================================================================== */
 
   function buildExportCard() {
     const clone =
       dom.pinCard.cloneNode(true);
 
+
+    /*
+      Export card itself.
+    */
+
     clone.id =
       "pinCardExport";
 
-    clone.classList.add(
-      "pf-export-card"
-    );
+    clone.className =
+      "relative overflow-hidden bg-white";
 
-    clone.classList.remove(
-      "group-hover:shadow-cardHover",
-      "group-hover:-translate-y-1"
-    );
-
-
-    /*
-      Main geometry.
-    */
-
-    clone.style.position = "relative";
+    clone.style.position =
+      "relative";
 
     clone.style.width =
       `${CONFIG.exportWidth}px`;
@@ -1120,46 +1428,67 @@
     clone.style.maxWidth =
       `${CONFIG.exportWidth}px`;
 
-    clone.style.aspectRatio = "auto";
+    clone.style.minHeight =
+      `${CONFIG.exportHeight}px`;
 
-    clone.style.margin = "0";
+    clone.style.maxHeight =
+      `${CONFIG.exportHeight}px`;
 
-    clone.style.borderRadius = "0";
+    clone.style.aspectRatio =
+      "auto";
 
-    clone.style.boxShadow = "none";
+    clone.style.margin =
+      "0";
 
-    clone.style.transform = "none";
+    clone.style.padding =
+      "0";
+
+    clone.style.border =
+      "0";
+
+    clone.style.borderRadius =
+      "0";
+
+    clone.style.boxShadow =
+      "none";
+
+    clone.style.transform =
+      "none";
+
+    clone.style.overflow =
+      "hidden";
 
 
     /*
-      Image.
+      Build image as background layer.
     */
 
-    const image =
-      clone.querySelector("#pinImage");
+    buildExportImageLayer(clone);
 
-    if (image) {
-      image.style.position = "absolute";
-      image.style.inset = "0";
 
-      image.style.width = "100%";
-      image.style.height = "100%";
+    /*
+      Scrim stays above image.
+    */
 
-      image.style.maxWidth = "none";
+    const scrim =
+      clone.querySelector("#pinScrim");
 
-      image.style.objectFit = "cover";
+    if (scrim) {
+      scrim.style.zIndex =
+        "5";
+    }
 
-      image.style.objectPosition =
-        `${state.posX}% ${state.posY}%`;
 
-      image.style.transform =
-        `scale(${state.zoom / 100})`;
+    /*
+      Text wrapper.
+    */
 
-      image.style.transformOrigin =
-        `${state.posX}% ${state.posY}%`;
+    const textWrap =
+      clone.querySelector("#pinTextWrap");
 
-      image.style.transition = "none";
-      image.style.animation = "none";
+    if (textWrap) {
+      textWrap.style.zIndex =
+        "10";
     }
 
 
@@ -1179,14 +1508,23 @@
         FONT_FAMILIES[state.font] ||
         FONT_FAMILIES["league-spartan"];
 
-      headline.style.color =
-        state.color;
-
       headline.style.fontSize =
         "72px";
 
+      headline.style.fontWeight =
+        "700";
+
       headline.style.lineHeight =
         "1.08";
+
+      headline.style.color =
+        state.color;
+
+      headline.style.webkitTextFillColor =
+        state.color;
+
+      headline.style.opacity =
+        "1";
     }
 
 
@@ -1195,150 +1533,43 @@
     */
 
     const subheadline =
-      clone.querySelector("#pinSubheadline");
+      clone.querySelector(
+        "#pinSubheadline"
+      );
 
     if (subheadline) {
       subheadline.textContent =
         state.subheadline.trim() ||
         "Add a subheadline for extra detail";
 
+      subheadline.style.fontFamily =
+        "'Inter', Arial, sans-serif";
+
       subheadline.style.fontSize =
         "34px";
 
+      subheadline.style.fontWeight =
+        "500";
+
       subheadline.style.lineHeight =
         "1.25";
+
+      subheadline.style.color =
+        "#FFFFFF";
+
+      subheadline.style.webkitTextFillColor =
+        "#FFFFFF";
+
+      subheadline.style.opacity =
+        "0.90";
     }
 
 
     /*
-      CTA.
-
-      We explicitly overwrite everything important
-      instead of trusting inherited Tailwind styles.
+      Completely rebuild CTA.
     */
 
-    const ctaWrap =
-      clone.querySelector("#pinCtaWrap");
-
-    const ctaLabel =
-      clone.querySelector("#pinCtaLabel");
-
-
-    if (ctaWrap) {
-      if (state.ctaType === "none") {
-        ctaWrap.classList.add("hidden");
-        ctaWrap.style.display = "none";
-      } else {
-        ctaWrap.classList.remove("hidden");
-        ctaWrap.style.display = "block";
-        ctaWrap.style.visibility = "visible";
-        ctaWrap.style.opacity = "1";
-      }
-    }
-
-
-    if (
-      ctaLabel &&
-      state.ctaType !== "none"
-    ) {
-      ctaLabel.textContent =
-        getCtaText();
-
-      ctaLabel.style.display =
-        "inline-block";
-
-      ctaLabel.style.color =
-        "#1F2937";
-
-      ctaLabel.style.webkitTextFillColor =
-        "#1F2937";
-
-      ctaLabel.style.opacity =
-        "1";
-
-      ctaLabel.style.visibility =
-        "visible";
-
-      ctaLabel.style.fontFamily =
-        "'Inter', sans-serif";
-
-      ctaLabel.style.fontSize =
-        "24px";
-
-      ctaLabel.style.fontWeight =
-        "700";
-
-      ctaLabel.style.lineHeight =
-        "1";
-    }
-
-
-    /*
-      CTA badge.
-    */
-
-    if (
-      ctaWrap &&
-      state.ctaType !== "none"
-    ) {
-      const badge =
-        ctaWrap.querySelector(
-          "span.inline-flex"
-        );
-
-      if (badge) {
-        badge.style.display =
-          "inline-flex";
-
-        badge.style.alignItems =
-          "center";
-
-        badge.style.width =
-          "fit-content";
-
-        badge.style.background =
-          "rgba(255,255,255,0.97)";
-
-        badge.style.padding =
-          "14px 24px";
-
-        badge.style.marginTop =
-          "12px";
-
-        badge.style.gap =
-          "10px";
-
-        badge.style.borderRadius =
-          "9999px";
-
-        badge.style.opacity =
-          "1";
-
-        badge.style.visibility =
-          "visible";
-
-
-        const dot =
-          badge.firstElementChild;
-
-        if (dot) {
-          dot.style.width =
-            "12px";
-
-          dot.style.height =
-            "12px";
-
-          dot.style.flex =
-            "0 0 12px";
-
-          dot.style.background =
-            "#B88A58";
-
-          dot.style.borderRadius =
-            "9999px";
-        }
-      }
-    }
+    rebuildExportCTA(clone);
 
 
     return clone;
@@ -1346,13 +1577,7 @@
 
 
   /* ==========================================================================
-     18. DOWNLOAD CANVAS
-
-     iOS:
-     Blob URL + window.open is substantially safer than giant data URLs.
-
-     Desktop:
-     normal <a download>.
+     SAVE PNG
      ========================================================================== */
 
   async function saveCanvas(canvas, filename) {
@@ -1360,14 +1585,14 @@
       await new Promise(function (resolve) {
         canvas.toBlob(
           resolve,
-          "image/png",
-          1
+          "image/png"
         );
       });
 
+
     if (!blob) {
       throw new Error(
-        "Could not create PNG blob."
+        "Could not create PNG."
       );
     }
 
@@ -1386,18 +1611,17 @@
       );
 
 
+    /*
+      iPhone / iPad.
+    */
+
     if (isIOS) {
-      /*
-        Safari iOS generally displays Blob PNG correctly.
-
-        User can long-press / Share / Save Image.
-      */
-
       const opened =
         window.open(
           blobUrl,
           "_blank"
         );
+
 
       if (!opened) {
         window.location.href =
@@ -1405,19 +1629,20 @@
       }
 
 
-      /*
-        Don't revoke immediately or Safari may lose it.
-      */
-
       setTimeout(function () {
         URL.revokeObjectURL(
           blobUrl
         );
       }, 60000);
 
+
       return;
     }
 
+
+    /*
+      Desktop / Android.
+    */
 
     const link =
       document.createElement("a");
@@ -1427,6 +1652,7 @@
 
     link.download =
       filename;
+
 
     document.body.appendChild(
       link
@@ -1446,7 +1672,7 @@
 
 
   /* ==========================================================================
-     19. EXPORT
+     EXPORT PIN
      ========================================================================== */
 
   async function exportPin() {
@@ -1459,12 +1685,15 @@
     }
 
 
-    state.isExporting = true;
+    state.isExporting =
+      true;
+
 
     setExportButtonLoading();
 
 
     try {
+
       /*
         Wait for fonts.
       */
@@ -1475,7 +1704,7 @@
 
 
       /*
-        Build dedicated export card.
+        Build clean export card.
       */
 
       const exportCard =
@@ -1483,10 +1712,11 @@
 
 
       /*
-        Clear ghost.
+        Prepare export host.
       */
 
-      dom.exportGhost.innerHTML = "";
+      dom.exportGhost.innerHTML =
+        "";
 
       dom.exportGhost.style.width =
         `${CONFIG.exportWidth}px`;
@@ -1494,34 +1724,32 @@
       dom.exportGhost.style.height =
         `${CONFIG.exportHeight}px`;
 
-
       dom.exportGhost.appendChild(
         exportCard
       );
 
 
       /*
-        Wait for export image.
-      */
-
-      const exportImage =
-        exportCard.querySelector(
-          "#pinImage"
-        );
-
-      await waitForImage(
-        exportImage
-      );
-
-
-      /*
-        Give browser two frames to finish layout.
+        Two frames for layout + background image.
       */
 
       await new Promise(function (resolve) {
         requestAnimationFrame(function () {
           requestAnimationFrame(resolve);
         });
+      });
+
+
+      /*
+        Give Safari a tiny moment to paint
+        the data-URL background.
+      */
+
+      await new Promise(function (resolve) {
+        setTimeout(
+          resolve,
+          100
+        );
       });
 
 
@@ -1536,7 +1764,7 @@
 
 
       /*
-        Render exact dimensions.
+        Capture exact 1000 × 1500.
       */
 
       const canvas =
@@ -1549,45 +1777,42 @@
             height:
               CONFIG.exportHeight,
 
-            scale: 1,
+            scale:
+              1,
 
-            useCORS: true,
+            backgroundColor:
+              "#FFFFFF",
 
-            allowTaint: false,
+            useCORS:
+              true,
 
-            backgroundColor: null,
+            allowTaint:
+              false,
 
-            logging: false,
+            logging:
+              false,
+
+            scrollX:
+              0,
+
+            scrollY:
+              0,
 
             windowWidth:
               CONFIG.exportWidth,
 
             windowHeight:
               CONFIG.exportHeight,
-
-            scrollX: 0,
-
-            scrollY: 0,
           }
         );
 
 
-      /*
-        Safety check.
-      */
-
-      if (
-        canvas.width !==
-        CONFIG.exportWidth ||
-        canvas.height !==
-        CONFIG.exportHeight
-      ) {
-        console.warn(
-          "Unexpected export size:",
-          canvas.width,
-          canvas.height
-        );
-      }
+      console.log(
+        "PinForge export:",
+        canvas.width,
+        "×",
+        canvas.height
+      );
 
 
       /*
@@ -1618,7 +1843,9 @@
           false;
       }, CONFIG.successDuration);
 
+
     } catch (error) {
+
       console.error(
         "PinForge export error:",
         error
