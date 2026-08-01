@@ -1,7 +1,6 @@
 /* ==========================================================================
    PinForge v0.2 — app.js
-   Stable Build
-   Matches current index.html + style.css
+   Stable Image Position + Mobile Floating Preview + Export
    ========================================================================== */
 
 (function () {
@@ -16,13 +15,12 @@
     exportHeight: 1500,
 
     zoomDefault: 100,
-    posXDefault: 50,
-    posYDefault: 50,
+    positionDefault: 50,
 
-    maxFileSize: 10 * 1024 * 1024,
+    imageMoveRange: 10,
 
-    headlineFallback: "Your Headline Here",
-    subheadlineFallback: "Add a subheadline for extra detail",
+    mobileBreakpoint: 1024,
+    mobileFloatingTop: 72,
 
     successDuration: 1600,
   };
@@ -34,82 +32,24 @@
 
   const FONT_FAMILIES = {
     "league-spartan": "'League Spartan', sans-serif",
-    "inter": "'Inter', sans-serif",
+    inter: "'Inter', sans-serif",
     "playfair-display": "'Playfair Display', serif",
     "dm-serif-display": "'DM Serif Display', serif",
-    "poppins": "'Poppins', sans-serif",
-    "caveat": "'Caveat', cursive",
+    poppins: "'Poppins', sans-serif",
+    caveat: "'Caveat', cursive",
   };
 
 
   /* ==========================================================================
-     3. DOM
-     ========================================================================== */
-
-  const dom = {
-    siteHeader: document.getElementById("siteHeader"),
-
-    dropzone: document.getElementById("dropzone"),
-    fileInput: document.getElementById("fileInput"),
-    removeImageBtn: document.getElementById("removeImageBtn"),
-
-    pinImage: document.getElementById("pinImage"),
-    pinPlaceholder: document.getElementById("pinPlaceholder"),
-
-    zoomSlider: document.getElementById("zoomSlider"),
-    zoomValue: document.getElementById("zoomValue"),
-    posXSlider: document.getElementById("posXSlider"),
-    posYSlider: document.getElementById("posYSlider"),
-    resetPositionBtn: document.getElementById("resetPositionBtn"),
-
-    headlineInput: document.getElementById("headlineInput"),
-    subheadlineInput: document.getElementById("subheadlineInput"),
-    headlineCount: document.getElementById("headlineCount"),
-    subheadlineCount: document.getElementById("subheadlineCount"),
-
-    pinHeadline: document.getElementById("pinHeadline"),
-    pinSubheadline: document.getElementById("pinSubheadline"),
-
-    styleToggle: document.getElementById("styleToggle"),
-    styleTogglePill: document.getElementById("styleTogglePill"),
-
-    pinTextWrap: document.getElementById("pinTextWrap"),
-    pinScrim: document.getElementById("pinScrim"),
-
-    customizeToggleBtn: document.getElementById("customizeToggleBtn"),
-    customizePanel: document.getElementById("customizePanel"),
-    customizeChevron: document.getElementById("customizeChevron"),
-
-    fontSelector: document.getElementById("fontSelector"),
-
-    colorSelector: document.getElementById("colorSelector"),
-    customColorSwatch: document.getElementById("customColorSwatch"),
-    customColorInput: document.getElementById("customColorInput"),
-
-    ctaSelect: document.getElementById("ctaSelect"),
-    ctaCustomInput: document.getElementById("ctaCustomInput"),
-    pinCtaWrap: document.getElementById("pinCtaWrap"),
-    pinCtaLabel: document.getElementById("pinCtaLabel"),
-
-    downloadBtn: document.getElementById("downloadBtn"),
-    downloadIcon: document.getElementById("downloadIcon"),
-    downloadLabel: document.getElementById("downloadLabel"),
-
-    pinCard: document.getElementById("pinCard"),
-    exportGhost: document.getElementById("exportGhost"),
-  };
-
-
-  /* ==========================================================================
-     4. STATE
+     3. STATE
      ========================================================================== */
 
   const state = {
     imageSrc: null,
 
     zoom: CONFIG.zoomDefault,
-    posX: CONFIG.posXDefault,
-    posY: CONFIG.posYDefault,
+    posX: CONFIG.positionDefault,
+    posY: CONFIG.positionDefault,
 
     headline: "",
     subheadline: "",
@@ -122,55 +62,129 @@
     ctaType: "SHOP ON ETSY",
     customCta: "",
 
-    customizeOpen: false,
-    exporting: false,
+    isCustomizingOpen: false,
+    isExporting: false,
   };
 
 
   /* ==========================================================================
-     5. IMAGE POSITIONING
+     4. DOM
      ========================================================================== */
 
-  function applyImageTransform() {
-    if (!dom.pinImage) return;
+  const dom = {
+    siteHeader: document.getElementById("siteHeader"),
 
-    const zoomScale = state.zoom / 100;
+    // Upload
+    dropzone: document.getElementById("dropzone"),
+    fileInput: document.getElementById("fileInput"),
+    removeImageBtn: document.getElementById("removeImageBtn"),
+
+    // Preview
+    pinCard: document.getElementById("pinCard"),
+    pinImage: document.getElementById("pinImage"),
+    pinPlaceholder: document.getElementById("pinPlaceholder"),
+    pinTextWrap: document.getElementById("pinTextWrap"),
+    pinScrim: document.getElementById("pinScrim"),
+
+    // Image adjustment
+    zoomSlider: document.getElementById("zoomSlider"),
+    zoomValue: document.getElementById("zoomValue"),
+    posXSlider: document.getElementById("posXSlider"),
+    posYSlider: document.getElementById("posYSlider"),
+    resetPositionBtn: document.getElementById("resetPositionBtn"),
+
+    // Text
+    headlineInput: document.getElementById("headlineInput"),
+    subheadlineInput: document.getElementById("subheadlineInput"),
+    headlineCount: document.getElementById("headlineCount"),
+    subheadlineCount: document.getElementById("subheadlineCount"),
+
+    pinHeadline: document.getElementById("pinHeadline"),
+    pinSubheadline: document.getElementById("pinSubheadline"),
+
+    // Overlay
+    styleToggle: document.getElementById("styleToggle"),
+    styleTogglePill: document.getElementById("styleTogglePill"),
+
+    // Customize
+    customizeToggleBtn: document.getElementById("customizeToggleBtn"),
+    customizePanel: document.getElementById("customizePanel"),
+    customizeChevron: document.getElementById("customizeChevron"),
+
+    // Font
+    fontSelector: document.getElementById("fontSelector"),
+
+    // Color
+    colorSelector: document.getElementById("colorSelector"),
+    customColorSwatch: document.getElementById("customColorSwatch"),
+    customColorInput: document.getElementById("customColorInput"),
+
+    // CTA
+    ctaSelect: document.getElementById("ctaSelect"),
+    ctaCustomInput: document.getElementById("ctaCustomInput"),
+    pinCtaWrap: document.getElementById("pinCtaWrap"),
+    pinCtaLabel: document.getElementById("pinCtaLabel"),
+
+    // Export
+    downloadBtn: document.getElementById("downloadBtn"),
+    downloadIcon: document.getElementById("downloadIcon"),
+    downloadLabel: document.getElementById("downloadLabel"),
+    exportGhost: document.getElementById("exportGhost"),
+  };
+
+
+  /* ==========================================================================
+     5. IMAGE TRANSFORM
+     ========================================================================== */
+
+  function getImageTransform() {
+    const scale = state.zoom / 100;
 
     /*
-      IMPORTANT:
+      Slider:
+      0   = move toward left/top
+      50  = center
+      100 = move toward right/bottom
 
-      object-position handles X/Y positioning.
-
-      transform ONLY handles zoom.
-
-      Do NOT translate the image here.
-      Combining translate + object-position was the reason Y positioning
-      became unpredictable in previous builds.
+      Because image has 10% overscan on every side,
+      ±10% gives us visible movement without exposing empty space.
     */
 
-    dom.pinImage.style.width = "100%";
-    dom.pinImage.style.height = "100%";
-    dom.pinImage.style.objectFit = "cover";
+    const x =
+      ((state.posX - 50) / 50) *
+      CONFIG.imageMoveRange;
 
-    dom.pinImage.style.objectPosition =
-      `${state.posX}% ${state.posY}%`;
+    const y =
+      ((state.posY - 50) / 50) *
+      CONFIG.imageMoveRange;
 
-    dom.pinImage.style.transform =
-      `scale(${zoomScale})`;
-
-    dom.pinImage.style.transformOrigin =
-      "center center";
+    return `translate3d(${x}%, ${y}%, 0) scale(${scale})`;
   }
 
 
-  function syncImageControls() {
+  function applyImageTransform(imageElement = dom.pinImage) {
+    if (!imageElement) return;
+
+    imageElement.style.transform = getImageTransform();
+    imageElement.style.transformOrigin = "center center";
+
+    /*
+      Keep object-position centered.
+
+      Actual X/Y movement is now controlled with transform,
+      which behaves much more consistently on Safari.
+    */
+    imageElement.style.objectPosition = "50% 50%";
+  }
+
+
+  function updateImageControls() {
     if (dom.zoomSlider) {
       dom.zoomSlider.value = state.zoom;
     }
 
     if (dom.zoomValue) {
-      dom.zoomValue.textContent =
-        `${state.zoom}%`;
+      dom.zoomValue.textContent = `${state.zoom}%`;
     }
 
     if (dom.posXSlider) {
@@ -187,10 +201,10 @@
 
   function resetImagePosition() {
     state.zoom = CONFIG.zoomDefault;
-    state.posX = CONFIG.posXDefault;
-    state.posY = CONFIG.posYDefault;
+    state.posX = CONFIG.positionDefault;
+    state.posY = CONFIG.positionDefault;
 
-    syncImageControls();
+    updateImageControls();
   }
 
 
@@ -206,7 +220,7 @@
       return;
     }
 
-    if (file.size > CONFIG.maxFileSize) {
+    if (file.size > 10 * 1024 * 1024) {
       alert("Image must be smaller than 10MB.");
       return;
     }
@@ -214,20 +228,15 @@
     const reader = new FileReader();
 
     reader.onload = function (event) {
-      const result = event.target.result;
+      const src = event.target.result;
 
-      if (!result) return;
+      if (!src) return;
 
-      state.imageSrc = result;
-
-      resetImagePosition();
+      state.imageSrc = src;
 
       if (dom.pinImage) {
-        dom.pinImage.onload = function () {
-          applyImageTransform();
-        };
+        dom.pinImage.src = src;
 
-        dom.pinImage.src = result;
         dom.pinImage.classList.remove("hidden");
         dom.pinImage.classList.add("pf-animate-in");
       }
@@ -240,10 +249,17 @@
         dom.removeImageBtn.classList.remove("hidden");
       }
 
+      /*
+        Every newly uploaded image starts:
+        Zoom 100
+        X 50
+        Y 50
+      */
+
+      resetImagePosition();
+
       setTimeout(function () {
-        dom.pinImage?.classList.remove(
-          "pf-animate-in"
-        );
+        dom.pinImage?.classList.remove("pf-animate-in");
       }, 500);
     };
 
@@ -251,12 +267,8 @@
   }
 
 
-  function clearImage() {
+  function removeImage() {
     state.imageSrc = null;
-
-    if (dom.fileInput) {
-      dom.fileInput.value = "";
-    }
 
     if (dom.pinImage) {
       dom.pinImage.src = "";
@@ -271,142 +283,104 @@
       dom.removeImageBtn.classList.add("hidden");
     }
 
+    if (dom.fileInput) {
+      dom.fileInput.value = "";
+    }
+
     resetImagePosition();
   }
 
 
   function setupUpload() {
-    dom.fileInput?.addEventListener(
-      "change",
-      function (event) {
-        const file =
-          event.target.files?.[0];
+    if (dom.fileInput) {
+      dom.fileInput.addEventListener("change", function (event) {
+        const file = event.target.files?.[0];
 
         if (file) {
           handleFile(file);
         }
-      }
-    );
-
-
-    if (dom.dropzone) {
-      ["dragenter", "dragover"].forEach(
-        function (eventName) {
-          dom.dropzone.addEventListener(
-            eventName,
-            function (event) {
-              event.preventDefault();
-              event.stopPropagation();
-
-              dom.dropzone.classList.add(
-                "is-dragover"
-              );
-            }
-          );
-        }
-      );
-
-
-      ["dragleave", "drop"].forEach(
-        function (eventName) {
-          dom.dropzone.addEventListener(
-            eventName,
-            function (event) {
-              event.preventDefault();
-              event.stopPropagation();
-
-              dom.dropzone.classList.remove(
-                "is-dragover"
-              );
-            }
-          );
-        }
-      );
-
-
-      dom.dropzone.addEventListener(
-        "drop",
-        function (event) {
-          const file =
-            event.dataTransfer?.files?.[0];
-
-          if (file) {
-            handleFile(file);
-          }
-        }
-      );
+      });
     }
 
+    if (dom.dropzone) {
+      ["dragenter", "dragover"].forEach(function (eventName) {
+        dom.dropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
 
-    dom.removeImageBtn?.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-        event.stopPropagation();
+          dom.dropzone.classList.add("is-dragover");
+        });
+      });
 
-        clearImage();
-      }
-    );
+      ["dragleave", "drop"].forEach(function (eventName) {
+        dom.dropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          dom.dropzone.classList.remove("is-dragover");
+        });
+      });
+
+      dom.dropzone.addEventListener("drop", function (event) {
+        const file = event.dataTransfer?.files?.[0];
+
+        if (file) {
+          handleFile(file);
+        }
+      });
+    }
+
+    dom.removeImageBtn?.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      removeImage();
+    });
   }
 
 
   /* ==========================================================================
-     7. IMAGE CONTROLS
+     7. IMAGE SLIDERS
      ========================================================================== */
 
   function setupImageControls() {
+    dom.zoomSlider?.addEventListener("input", function (event) {
+      state.zoom = Number(event.target.value);
 
-    dom.zoomSlider?.addEventListener(
-      "input",
-      function (event) {
-        state.zoom =
-          Number(event.target.value);
-
-        if (dom.zoomValue) {
-          dom.zoomValue.textContent =
-            `${state.zoom}%`;
-        }
-
-        applyImageTransform();
+      if (dom.zoomValue) {
+        dom.zoomValue.textContent = `${state.zoom}%`;
       }
-    );
+
+      applyImageTransform();
+    });
 
 
-    dom.posXSlider?.addEventListener(
-      "input",
-      function (event) {
-        state.posX =
-          Number(event.target.value);
+    dom.posXSlider?.addEventListener("input", function (event) {
+      state.posX = Number(event.target.value);
 
-        applyImageTransform();
-      }
-    );
+      applyImageTransform();
+    });
 
 
-    dom.posYSlider?.addEventListener(
-      "input",
-      function (event) {
-        state.posY =
-          Number(event.target.value);
+    dom.posYSlider?.addEventListener("input", function (event) {
+      /*
+        THIS is the Position Y fix.
 
-        /*
-          This directly changes object-position Y.
-          0   = top
-          50  = center
-          100 = bottom
-        */
+        It changes the same transform used by the visible image,
+        rather than relying on object-position alone.
+      */
 
-        applyImageTransform();
-      }
-    );
+      state.posY = Number(event.target.value);
+
+      applyImageTransform();
+    });
 
 
-    dom.resetPositionBtn?.addEventListener(
-      "click",
-      function () {
-        resetImagePosition();
-      }
-    );
+    dom.resetPositionBtn?.addEventListener("click", function (event) {
+      event.preventDefault();
+
+      resetImagePosition();
+    });
   }
 
 
@@ -419,7 +393,7 @@
 
     dom.pinHeadline.textContent =
       state.headline.trim() ||
-      CONFIG.headlineFallback;
+      "Your Headline Here";
   }
 
 
@@ -428,42 +402,33 @@
 
     dom.pinSubheadline.textContent =
       state.subheadline.trim() ||
-      CONFIG.subheadlineFallback;
+      "Add a subheadline for extra detail";
   }
 
 
   function setupText() {
+    dom.headlineInput?.addEventListener("input", function (event) {
+      state.headline = event.target.value;
 
-    dom.headlineInput?.addEventListener(
-      "input",
-      function (event) {
-        state.headline =
-          event.target.value;
+      renderHeadline();
 
-        renderHeadline();
-
-        if (dom.headlineCount) {
-          dom.headlineCount.textContent =
-            `${state.headline.length}/60`;
-        }
+      if (dom.headlineCount) {
+        dom.headlineCount.textContent =
+          `${state.headline.length}/60`;
       }
-    );
+    });
 
 
-    dom.subheadlineInput?.addEventListener(
-      "input",
-      function (event) {
-        state.subheadline =
-          event.target.value;
+    dom.subheadlineInput?.addEventListener("input", function (event) {
+      state.subheadline = event.target.value;
 
-        renderSubheadline();
+      renderSubheadline();
 
-        if (dom.subheadlineCount) {
-          dom.subheadlineCount.textContent =
-            `${state.subheadline.length}/80`;
-        }
+      if (dom.subheadlineCount) {
+        dom.subheadlineCount.textContent =
+          `${state.subheadline.length}/80`;
       }
-    );
+    });
   }
 
 
@@ -471,145 +436,105 @@
      9. OVERLAY POSITION
      ========================================================================== */
 
-  function applyOverlayPosition() {
-    if (
-      !dom.pinTextWrap ||
-      !dom.pinScrim
-    ) {
-      return;
-    }
+  const OVERLAY_CLASSES = {
+    bottom: {
+      wrap:
+        "absolute inset-x-0 bottom-0 p-[6%] flex flex-col gap-2 text-left items-start z-10",
 
+      scrim:
+        "absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none z-[5]",
+    },
 
-    if (state.style === "bottom") {
+    center: {
+      wrap:
+        "absolute inset-x-0 top-1/2 -translate-y-1/2 p-[6%] flex flex-col items-center text-center gap-2 z-10",
 
-      dom.pinTextWrap.className =
-        "absolute inset-x-0 bottom-0 p-[6%] flex flex-col gap-2 text-left items-start";
+      scrim:
+        "absolute inset-0 bg-black/35 pointer-events-none z-[5]",
+    },
 
-      dom.pinScrim.className =
-        "absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none";
+    top: {
+      wrap:
+        "absolute inset-x-0 top-0 p-[6%] flex flex-col gap-2 text-left items-start z-10",
 
-    }
-
-
-    if (state.style === "center") {
-
-      dom.pinTextWrap.className =
-        "absolute inset-x-0 top-1/2 -translate-y-1/2 p-[6%] flex flex-col gap-2 text-center items-center";
-
-      dom.pinScrim.className =
-        "absolute inset-0 bg-black/35 pointer-events-none";
-
-    }
-
-
-    if (state.style === "top") {
-
-      dom.pinTextWrap.className =
-        "absolute inset-x-0 top-0 p-[6%] flex flex-col gap-2 text-left items-start";
-
-      dom.pinScrim.className =
-        "absolute inset-x-0 top-0 h-[46%] bg-gradient-to-b from-black/70 via-black/25 to-transparent pointer-events-none";
-
-    }
-
-
-    dom.styleToggle
-      ?.querySelectorAll(".style-btn")
-      .forEach(function (button) {
-
-        button.classList.toggle(
-          "is-active",
-          button.dataset.style ===
-            state.style
-        );
-
-      });
-
-
-    requestAnimationFrame(
-      updateStylePill
-    );
-  }
+      scrim:
+        "absolute inset-x-0 top-0 h-[46%] bg-gradient-to-b from-black/70 via-black/25 to-transparent pointer-events-none z-[5]",
+    },
+  };
 
 
   function updateStylePill() {
-    if (
-      !dom.styleToggle ||
-      !dom.styleTogglePill
-    ) {
-      return;
-    }
+    if (!dom.styleToggle || !dom.styleTogglePill) return;
 
-    const button =
+    const active =
       dom.styleToggle.querySelector(
         `[data-style="${state.style}"]`
       );
 
-    if (!button) return;
+    if (!active) return;
 
     const parentRect =
       dom.styleToggle.getBoundingClientRect();
 
-    const buttonRect =
-      button.getBoundingClientRect();
+    const activeRect =
+      active.getBoundingClientRect();
 
     dom.styleTogglePill.style.width =
-      `${buttonRect.width}px`;
+      `${activeRect.width}px`;
 
     dom.styleTogglePill.style.transform =
-      `translateX(${
-        buttonRect.left -
-        parentRect.left -
-        4
-      }px)`;
+      `translateX(${activeRect.left - parentRect.left - 4}px)`;
+  }
+
+
+  function setOverlayStyle(style) {
+    if (!OVERLAY_CLASSES[style]) return;
+
+    state.style = style;
+
+    if (dom.pinTextWrap) {
+      dom.pinTextWrap.className =
+        OVERLAY_CLASSES[style].wrap;
+    }
+
+    if (dom.pinScrim) {
+      dom.pinScrim.className =
+        OVERLAY_CLASSES[style].scrim;
+    }
+
+    dom.styleToggle
+      ?.querySelectorAll(".style-btn")
+      .forEach(function (button) {
+        button.classList.toggle(
+          "is-active",
+          button.dataset.style === style
+        );
+      });
+
+    requestAnimationFrame(updateStylePill);
   }
 
 
   function setupOverlay() {
-    dom.styleToggle?.addEventListener(
-      "click",
-      function (event) {
+    dom.styleToggle?.addEventListener("click", function (event) {
+      const button =
+        event.target.closest(".style-btn");
 
-        const button =
-          event.target.closest(
-            ".style-btn"
-          );
+      if (!button) return;
 
-        if (!button) return;
+      setOverlayStyle(button.dataset.style);
+    });
 
-        const style =
-          button.dataset.style;
-
-        if (
-          ![
-            "bottom",
-            "center",
-            "top",
-          ].includes(style)
-        ) {
-          return;
-        }
-
-        state.style = style;
-
-        applyOverlayPosition();
-      }
-    );
-
-
-    window.addEventListener(
-      "resize",
-      updateStylePill
-    );
+    window.addEventListener("resize", updateStylePill);
   }
 
 
   /* ==========================================================================
-     10. CUSTOMIZE PANEL
+     10. CUSTOMIZE ACCORDION
      ========================================================================== */
 
-  function setCustomize(open) {
-    state.customizeOpen = open;
+  function setCustomizeOpen(open) {
+    state.isCustomizingOpen = open;
 
     dom.customizePanel?.classList.toggle(
       "is-open",
@@ -629,16 +554,13 @@
 
 
   function setupCustomize() {
-    setCustomize(false);
+    setCustomizeOpen(false);
 
-    dom.customizeToggleBtn?.addEventListener(
-      "click",
-      function () {
-        setCustomize(
-          !state.customizeOpen
-        );
-      }
-    );
+    dom.customizeToggleBtn?.addEventListener("click", function () {
+      setCustomizeOpen(
+        !state.isCustomizingOpen
+      );
+    });
   }
 
 
@@ -651,124 +573,89 @@
 
     dom.pinHeadline.style.fontFamily =
       FONT_FAMILIES[state.font] ||
-      FONT_FAMILIES[
-        "league-spartan"
-      ];
+      FONT_FAMILIES["league-spartan"];
   }
 
 
   function setupFonts() {
-    dom.fontSelector?.addEventListener(
-      "click",
-      function (event) {
+    dom.fontSelector?.addEventListener("click", function (event) {
+      const chip =
+        event.target.closest(".font-chip");
 
-        const chip =
-          event.target.closest(
-            ".font-chip"
+      if (!chip) return;
+
+      const font =
+        chip.dataset.font;
+
+      if (!FONT_FAMILIES[font]) return;
+
+      state.font = font;
+
+      dom.fontSelector
+        .querySelectorAll(".font-chip")
+        .forEach(function (item) {
+          item.classList.toggle(
+            "is-active",
+            item === chip
           );
+        });
 
-        if (!chip) return;
-
-        const font =
-          chip.dataset.font;
-
-        if (!FONT_FAMILIES[font]) {
-          return;
-        }
-
-        state.font = font;
-
-        dom.fontSelector
-          .querySelectorAll(
-            ".font-chip"
-          )
-          .forEach(function (item) {
-
-            item.classList.toggle(
-              "is-active",
-              item === chip
-            );
-
-          });
-
-        applyFont();
-      }
-    );
+      applyFont();
+    });
   }
 
 
   /* ==========================================================================
-     12. COLOR
+     12. HEADLINE COLOR
      ========================================================================== */
 
   function applyColor(color) {
     state.color = color;
 
     if (dom.pinHeadline) {
-      dom.pinHeadline.style.color =
-        color;
+      dom.pinHeadline.style.color = color;
     }
   }
 
 
-  function setActiveColor(element) {
+  function setActiveColor(target) {
     dom.colorSelector
-      ?.querySelectorAll(
-        ".color-swatch"
-      )
-      .forEach(function (swatch) {
-
-        swatch.classList.toggle(
+      ?.querySelectorAll(".color-swatch")
+      .forEach(function (item) {
+        item.classList.toggle(
           "is-active",
-          swatch === element
+          item === target
         );
-
       });
   }
 
 
   function setupColors() {
-
-    dom.colorSelector?.addEventListener(
-      "click",
-      function (event) {
-
-        const swatch =
-          event.target.closest(
-            ".color-swatch:not(.color-swatch--custom)"
-          );
-
-        if (!swatch) return;
-
-        const color =
-          swatch.dataset.color;
-
-        if (!color) return;
-
-        applyColor(color);
-        setActiveColor(swatch);
-      }
-    );
-
-
-    dom.customColorInput?.addEventListener(
-      "input",
-      function (event) {
-
-        applyColor(
-          event.target.value
+    dom.colorSelector?.addEventListener("click", function (event) {
+      const swatch =
+        event.target.closest(
+          ".color-swatch:not(.color-swatch--custom)"
         );
 
-        if (
-          dom.customColorSwatch
-        ) {
-          setActiveColor(
-            dom.customColorSwatch
-          );
-        }
+      if (!swatch) return;
 
+      const color =
+        swatch.dataset.color;
+
+      if (!color) return;
+
+      applyColor(color);
+      setActiveColor(swatch);
+    });
+
+
+    dom.customColorInput?.addEventListener("input", function (event) {
+      applyColor(event.target.value);
+
+      if (dom.customColorSwatch) {
+        setActiveColor(dom.customColorSwatch);
       }
-    );
+    });
   }
 
 
@@ -777,30 +664,16 @@
      ========================================================================== */
 
   function renderCTA() {
-    if (
-      !dom.pinCtaWrap ||
-      !dom.pinCtaLabel
-    ) {
-      return;
-    }
-
+    if (!dom.pinCtaWrap || !dom.pinCtaLabel) return;
 
     if (state.ctaType === "none") {
-      dom.pinCtaWrap.classList.add(
-        "hidden"
-      );
-
+      dom.pinCtaWrap.classList.add("hidden");
       return;
     }
 
-
-    dom.pinCtaWrap.classList.remove(
-      "hidden"
-    );
-
+    dom.pinCtaWrap.classList.remove("hidden");
 
     let text = state.ctaType;
-
 
     if (state.ctaType === "custom") {
       text =
@@ -808,889 +681,235 @@
         "SHOP NOW";
     }
 
-
-    dom.pinCtaLabel.textContent =
-      text;
+    dom.pinCtaLabel.textContent = text;
   }
 
 
   function setupCTA() {
+    dom.ctaSelect?.addEventListener("change", function (event) {
+      state.ctaType = event.target.value;
 
-    dom.ctaSelect?.addEventListener(
-      "change",
-      function (event) {
-
-        state.ctaType =
-          event.target.value;
-
-
-        if (dom.ctaCustomInput) {
-          dom.ctaCustomInput.classList.toggle(
-            "hidden",
-            state.ctaType !==
-              "custom"
-          );
-        }
-
-
-        renderCTA();
+      if (dom.ctaCustomInput) {
+        dom.ctaCustomInput.classList.toggle(
+          "hidden",
+          state.ctaType !== "custom"
+        );
       }
-    );
+
+      renderCTA();
+    });
 
 
-    dom.ctaCustomInput?.addEventListener(
-      "input",
-      function (event) {
+    dom.ctaCustomInput?.addEventListener("input", function (event) {
+      state.customCta =
+        event.target.value;
 
-        state.customCta =
-          event.target.value;
-
-        renderCTA();
-      }
-    );
+      renderCTA();
+    });
   }
 
 
   /* ==========================================================================
-     14. EXPORT
-     EXACT 1000 × 1500
+     14. MOBILE FLOATING LIVE PREVIEW
      ========================================================================== */
 
-  async function exportPin() {
+  let floatingTicking = false;
 
-    if (
-      state.exporting ||
-      !dom.pinCard ||
-      !dom.exportGhost
-    ) {
-      return;
-    }
 
+  function updateMobileFloatingPreview() {
+    floatingTicking = false;
 
-    state.exporting = true;
-
-
-    setDownloadState(
-      "loading"
-    );
-
-
-    try {
-
-      if (
-        document.fonts &&
-        document.fonts.ready
-      ) {
-        await document.fonts.ready;
-      }
-
-
-      /*
-        IMPORTANT EXPORT STRATEGY
-
-        Instead of stretching the responsive preview itself,
-        we create a 1000 × 1500 clone and explicitly rebuild
-        the dimensions of the important children.
-
-        This prevents the uploaded product image from becoming
-        squashed/gepeng.
-      */
-
-
-      const clone =
-        dom.pinCard.cloneNode(true);
-
-
-      clone.id =
-        "pinCardExport";
-
-
-      clone.style.width =
-        "1000px";
-
-      clone.style.height =
-        "1500px";
-
-      clone.style.minWidth =
-        "1000px";
-
-      clone.style.maxWidth =
-        "1000px";
-
-      clone.style.aspectRatio =
-        "2 / 3";
-
-      clone.style.position =
-        "relative";
-
-      clone.style.overflow =
-        "hidden";
-
-      clone.style.borderRadius =
-        "0";
-
-      clone.style.transform =
-        "none";
-
-      clone.style.boxShadow =
-        "none";
-
-
-      /*
-        IMAGE
-      */
-
-      const exportImageWrap =
-        clone.querySelector(
-          "#pinImageWrap"
-        );
-
-
-      if (exportImageWrap) {
-        exportImageWrap.style.position =
-          "absolute";
-
-        exportImageWrap.style.inset =
-          "0";
-
-        exportImageWrap.style.width =
-          "1000px";
-
-        exportImageWrap.style.height =
-          "1500px";
-
-        exportImageWrap.style.overflow =
-          "hidden";
-      }
-
-
-      const exportImage =
-        clone.querySelector(
-          "#pinImage"
-        );
-
-
-      if (exportImage) {
-
-        exportImage.style.position =
-          "absolute";
-
-        exportImage.style.inset =
-          "0";
-
-        exportImage.style.width =
-          "100%";
-
-        exportImage.style.height =
-          "100%";
-
-        /*
-          THIS is what prevents distortion.
-        */
-
-        exportImage.style.objectFit =
-          "cover";
-
-        exportImage.style.objectPosition =
-          `${state.posX}% ${state.posY}%`;
-
-        exportImage.style.transform =
-          `scale(${state.zoom / 100})`;
-
-        exportImage.style.transformOrigin =
-          "center center";
-
-        exportImage.style.maxWidth =
-          "none";
-
-        exportImage.style.display =
-          state.imageSrc
-            ? "block"
-            : "none";
-      }
-
-
-      /*
-        SCRIM
-      */
-
-      const exportScrim =
-        clone.querySelector(
-          "#pinScrim"
-        );
-
-
-      if (exportScrim) {
-
-        exportScrim.style.zIndex =
-          "5";
-
-      }
-
-
-      /*
-        TEXT WRAPPER
-      */
-
-      const exportText =
-        clone.querySelector(
-          "#pinTextWrap"
-        );
-
-
-      if (exportText) {
-
-        exportText.style.zIndex =
-          "10";
-
-        /*
-          Preview uses 6% padding.
-          6% of 1000 = 60px.
-        */
-
-        exportText.style.padding =
-          "60px";
-
-        exportText.style.gap =
-          "18px";
-
-      }
-
-
-      /*
-        HEADLINE
-      */
-
-      const exportHeadline =
-        clone.querySelector(
-          "#pinHeadline"
-        );
-
-
-      if (exportHeadline) {
-
-        exportHeadline.style.fontFamily =
-          FONT_FAMILIES[state.font];
-
-        exportHeadline.style.color =
-          state.color;
-
-        exportHeadline.style.fontSize =
-          "72px";
-
-        exportHeadline.style.lineHeight =
-          "1.08";
-
-        exportHeadline.style.fontWeight =
-          "700";
-
-      }
-
-
-      /*
-        SUBHEADLINE
-      */
-
-      const exportSub =
-        clone.querySelector(
-          "#pinSubheadline"
-        );
-
-
-      if (exportSub) {
-
-        exportSub.style.fontSize =
-          "34px";
-
-        exportSub.style.lineHeight =
-          "1.3";
-
-      }
-
-
-      /*
-        CTA
-
-        Explicitly rebuild CTA dimensions so Tailwind styles
-        don't disappear during html2canvas export.
-      */
-
-      const exportCtaWrap =
-        clone.querySelector(
-          "#pinCtaWrap"
-        );
-
-
-      const exportCtaLabel =
-        clone.querySelector(
-          "#pinCtaLabel"
-        );
-
-
-      if (exportCtaWrap) {
-
-        exportCtaWrap.style.display =
-          state.ctaType === "none"
-            ? "none"
-            : "block";
-
-        exportCtaWrap.style.marginTop =
-          "8px";
-
-      }
-
-
-      if (
-        exportCtaWrap &&
-        state.ctaType !== "none"
-      ) {
-
-        const badge =
-          exportCtaWrap.querySelector(
-            "span"
-          );
-
-
-        if (badge) {
-
-          badge.style.display =
-            "inline-flex";
-
-          badge.style.alignItems =
-            "center";
-
-          badge.style.width =
-            "fit-content";
-
-          badge.style.background =
-            "rgba(255,255,255,0.95)";
-
-          badge.style.borderRadius =
-            "9999px";
-
-          badge.style.padding =
-            "14px 24px";
-
-          badge.style.gap =
-            "10px";
-
-        }
-
-      }
-
-
-      if (exportCtaLabel) {
-
-        let ctaText =
-          state.ctaType;
-
-
-        if (
-          state.ctaType ===
-          "custom"
-        ) {
-
-          ctaText =
-            state.customCta.trim() ||
-            "SHOP NOW";
-
-        }
-
-
-        exportCtaLabel.textContent =
-          ctaText;
-
-        exportCtaLabel.style.display =
-          "inline";
-
-        exportCtaLabel.style.fontSize =
-          "22px";
-
-        exportCtaLabel.style.lineHeight =
-          "1";
-
-        exportCtaLabel.style.fontWeight =
-          "700";
-
-        exportCtaLabel.style.color =
-          "#1F2937";
-
-        exportCtaLabel.style.letterSpacing =
-          "0.04em";
-
-      }
-
-
-      /*
-        EXPORT HOST
-      */
-
-      dom.exportGhost.innerHTML =
-        "";
-
-      dom.exportGhost.style.width =
-        "1000px";
-
-      dom.exportGhost.style.height =
-        "1500px";
-
-      dom.exportGhost.appendChild(
-        clone
-      );
-
-
-      /*
-        Give browser one frame to calculate
-        the new 1000×1500 layout.
-      */
-
-      await new Promise(function (resolve) {
-
-        requestAnimationFrame(function () {
-
-          requestAnimationFrame(
-            resolve
-          );
-
-        });
-
-      });
-
-
-      /*
-        Ensure cloned image is decoded before canvas capture.
-      */
-
-      if (
-        exportImage &&
-        exportImage.src
-      ) {
-
-        try {
-
-          if (exportImage.decode) {
-            await exportImage.decode();
-          }
-
-        } catch (_) {
-          // Safe fallback.
-        }
-
-      }
-
-
-      if (
-        typeof html2canvas ===
-        "undefined"
-      ) {
-
-        throw new Error(
-          "html2canvas is not loaded."
-        );
-
-      }
-
-
-      const canvas =
-        await html2canvas(
-          clone,
-          {
-            width: 1000,
-            height: 1500,
-
-            scale: 1,
-
-            useCORS: true,
-
-            allowTaint: true,
-
-            backgroundColor:
-              "#ffffff",
-
-            logging: false,
-
-            scrollX: 0,
-            scrollY: 0,
-          }
-        );
-
-
-      dom.exportGhost.innerHTML =
-        "";
-
-
-      /*
-        Safety check.
-      */
-
-      console.log(
-        "Export size:",
-        canvas.width,
-        canvas.height
-      );
-
-
-      /*
-        FILENAME
-      */
-
-      let slug =
-        state.headline.trim() ||
-        "pinforge-pin";
-
-
-      slug = slug
-        .toLowerCase()
-        .replace(
-          /[^a-z0-9]+/g,
-          "-"
-        )
-        .replace(
-          /^-+|-+$/g,
-          ""
-        )
-        .substring(
-          0,
-          45
-        );
-
-
-      const filename =
-        `${slug}-1000x1500.png`;
-
-
-      /*
-        DOWNLOAD
-
-        Use Blob first because it is substantially
-        lighter than giant base64 data URLs.
-      */
-
-      const blob =
-        await new Promise(
-          function (resolve) {
-
-            canvas.toBlob(
-              resolve,
-              "image/png",
-              1
-            );
-
-          }
-        );
-
-
-      if (!blob) {
-
-        downloadDataUrl(
-          canvas.toDataURL(
-            "image/png"
-          ),
-          filename
-        );
-
-      } else {
-
-        await downloadBlob(
-          blob,
-          filename
-        );
-
-      }
-
-
-      setDownloadState(
-        "success"
-      );
-
-
-      setTimeout(
-        function () {
-
-          setDownloadState(
-            "normal"
-          );
-
-        },
-        CONFIG.successDuration
-      );
-
-
-    } catch (error) {
-
-      console.error(
-        "PinForge export error:",
-        error
-      );
-
-
-      dom.exportGhost.innerHTML =
-        "";
-
-
-      setDownloadState(
-        "error"
-      );
-
-
-      setTimeout(
-        function () {
-
-          setDownloadState(
-            "normal"
-          );
-
-        },
-        1800
-      );
-
-
-    } finally {
-
-      state.exporting =
-        false;
-
-    }
-
-  }
-
-
-  /* ==========================================================================
-     15. DOWNLOAD HELPERS
-     ========================================================================== */
-
-  function isIOS() {
-
-    return (
-      /iPad|iPhone|iPod/.test(
-        navigator.userAgent
-      ) ||
-      (
-        navigator.platform ===
-          "MacIntel" &&
-        navigator.maxTouchPoints >
-          1
-      )
-    );
-
-  }
-
-
-  async function downloadBlob(
-    blob,
-    filename
-  ) {
-
-    const url =
-      URL.createObjectURL(blob);
-
+    if (!dom.pinCard) return;
 
     /*
-      iPhone/iPad Safari often ignores
-      <a download> for blob URLs.
-
-      Opening the generated PNG is more reliable.
-      User can then Save Image / Save to Files.
+      Desktop:
+      never use floating preview.
     */
 
-    if (isIOS()) {
-
-      const newWindow =
-        window.open(
-          url,
-          "_blank"
-        );
-
-
-      if (!newWindow) {
-
-        window.location.href =
-          url;
-
-      }
-
-
-      /*
-        Don't revoke immediately.
-        Safari still needs the URL.
-      */
-
-      setTimeout(
-        function () {
-
-          URL.revokeObjectURL(
-            url
-          );
-
-        },
-        60000
+    if (window.innerWidth >= CONFIG.mobileBreakpoint) {
+      dom.pinCard.classList.remove(
+        "pf-mobile-floating"
       );
-
 
       return;
-
     }
 
+    /*
+      Find controls section.
 
-    const link =
-      document.createElement(
-        "a"
+      Current index:
+      pinCard lives in the second section.
+      The first section is the editor.
+    */
+
+    const editorSection =
+      document.querySelector(
+        "main > div > section:first-child"
       );
 
+    if (!editorSection) return;
 
-    link.href =
-      url;
+    const editorRect =
+      editorSection.getBoundingClientRect();
 
-    link.download =
-      filename;
+    /*
+      Float preview once editor controls reach the top
+      area of the viewport.
 
+      Stop floating once user has passed the editor.
+    */
 
-    document.body.appendChild(
-      link
+    const shouldFloat =
+      editorRect.top < CONFIG.mobileFloatingTop &&
+      editorRect.bottom > 180;
+
+    dom.pinCard.classList.toggle(
+      "pf-mobile-floating",
+      shouldFloat
     );
-
-
-    link.click();
-
-
-    link.remove();
-
-
-    setTimeout(
-      function () {
-
-        URL.revokeObjectURL(
-          url
-        );
-
-      },
-      5000
-    );
-
   }
 
 
-  function downloadDataUrl(
-    dataUrl,
-    filename
-  ) {
+  function requestFloatingUpdate() {
+    if (floatingTicking) return;
 
-    const link =
-      document.createElement(
-        "a"
-      );
+    floatingTicking = true;
 
-
-    link.href =
-      dataUrl;
-
-    link.download =
-      filename;
+    requestAnimationFrame(
+      updateMobileFloatingPreview
+    );
+  }
 
 
-    document.body.appendChild(
-      link
+  function setupMobilePreview() {
+    window.addEventListener(
+      "scroll",
+      requestFloatingUpdate,
+      { passive: true }
     );
 
+    window.addEventListener(
+      "resize",
+      requestFloatingUpdate,
+      { passive: true }
+    );
 
-    link.click();
+    /*
+      Important for iPhone:
+      visualViewport can change when Safari's
+      address bar expands/collapses.
+    */
 
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener(
+        "resize",
+        requestFloatingUpdate,
+        { passive: true }
+      );
+    }
 
-    link.remove();
-
+    updateMobileFloatingPreview();
   }
 
 
   /* ==========================================================================
-     16. DOWNLOAD BUTTON UI
+     15. HEADER
      ========================================================================== */
 
-  function setDownloadState(mode) {
-
-    if (!dom.downloadBtn) {
-      return;
-    }
-
-
-    if (mode === "loading") {
-
-      dom.downloadBtn.disabled =
-        true;
-
-      dom.downloadBtn.innerHTML = `
-        <svg class="pf-spin"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="white"
-          stroke-width="2">
-          <circle
-            cx="12"
-            cy="12"
-            r="9"
-            stroke-opacity="0.25"
-          />
-          <path
-            d="M21 12a9 9 0 0 0-9-9"
-          />
-        </svg>
-
-        <span>
-          Generating 1000×1500...
-        </span>
-      `;
-
-      return;
-
-    }
+  function setupHeader() {
+    window.addEventListener(
+      "scroll",
+      function () {
+        dom.siteHeader?.classList.toggle(
+          "is-scrolled",
+          window.scrollY > 8
+        );
+      },
+      { passive: true }
+    );
+  }
 
 
-    if (mode === "success") {
+  /* ==========================================================================
+     16. EXPORT
+     Exact 1000 × 1500
+     ========================================================================== */
 
-      dom.downloadBtn.disabled =
-        false;
+  function makeFilename() {
+    let name =
+      state.headline.trim() ||
+      "pinforge-pin";
 
-      dom.downloadBtn.classList.add(
-        "pf-success"
-      );
+    name = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .substring(0, 50);
 
-      dom.downloadBtn.innerHTML = `
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="white"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round">
-          <path d="M5 13l4 4L19 7"/>
-        </svg>
-
-        <span>Pin Ready!</span>
-      `;
-
-      return;
-
-    }
+    return `${name}-1000x1500.png`;
+  }
 
 
-    if (mode === "error") {
+  function setExportButtonLoading() {
+    if (!dom.downloadBtn) return;
 
-      dom.downloadBtn.disabled =
-        false;
+    dom.downloadBtn.disabled = true;
 
-      dom.downloadBtn.innerHTML =
-        "<span>Export Failed — Retry</span>";
+    dom.downloadBtn.innerHTML = `
+      <svg class="pf-spin"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="white"
+        stroke-width="2">
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+          stroke-opacity="0.3"
+        />
+        <path
+          d="M21 12a9 9 0 0 0-9-9"
+        />
+      </svg>
 
-      return;
+      <span>
+        Generating 1000×1500...
+      </span>
+    `;
+  }
 
-    }
+
+  function setExportButtonSuccess() {
+    if (!dom.downloadBtn) return;
+
+    dom.downloadBtn.classList.add(
+      "pf-success"
+    );
+
+    dom.downloadBtn.innerHTML = `
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="white"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M5 13l4 4L19 7"/>
+      </svg>
+
+      <span>Pin Ready!</span>
+    `;
+  }
 
 
-    dom.downloadBtn.disabled =
-      false;
+  function resetExportButton() {
+    if (!dom.downloadBtn) return;
+
+    dom.downloadBtn.disabled = false;
 
     dom.downloadBtn.classList.remove(
       "pf-success"
@@ -1706,56 +925,484 @@
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round">
-
         <path d="M12 16V4M12 16l-4-4M12 16l4-4"/>
         <path d="M4 20h16"/>
-
       </svg>
 
       <span>Download PNG</span>
     `;
-
   }
 
 
-  /* ==========================================================================
-     17. HEADER
-     ========================================================================== */
+  async function waitForCloneImage(clone) {
+    const image =
+      clone.querySelector("#pinImage");
 
-  function setupHeader() {
+    if (!image || !image.src) return;
 
-    window.addEventListener(
-      "scroll",
-      function () {
+    if (image.complete) {
+      try {
+        await image.decode();
+      } catch (_) {}
 
-        dom.siteHeader?.classList.toggle(
-          "is-scrolled",
-          window.scrollY > 8
+      return;
+    }
+
+    await new Promise(function (resolve) {
+      image.onload = resolve;
+      image.onerror = resolve;
+    });
+  }
+
+
+  async function exportPin() {
+    if (
+      state.isExporting ||
+      !dom.pinCard ||
+      !dom.exportGhost
+    ) {
+      return;
+    }
+
+    state.isExporting = true;
+
+    setExportButtonLoading();
+
+    try {
+      /*
+        Wait for Google Fonts.
+      */
+
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+
+      /*
+        Clone the current preview.
+
+        IMPORTANT:
+        We remove the mobile floating class from the clone.
+      */
+
+      const clone =
+        dom.pinCard.cloneNode(true);
+
+      clone.classList.remove(
+        "pf-mobile-floating"
+      );
+
+      clone.id = "pinCardExport";
+
+
+      /*
+        Force exact export dimensions.
+      */
+
+      clone.style.position = "relative";
+      clone.style.top = "auto";
+      clone.style.right = "auto";
+      clone.style.left = "auto";
+
+      clone.style.width =
+        `${CONFIG.exportWidth}px`;
+
+      clone.style.height =
+        `${CONFIG.exportHeight}px`;
+
+      clone.style.minWidth =
+        `${CONFIG.exportWidth}px`;
+
+      clone.style.maxWidth =
+        `${CONFIG.exportWidth}px`;
+
+      clone.style.aspectRatio = "auto";
+
+      clone.style.margin = "0";
+
+      clone.style.borderRadius = "0";
+
+      clone.style.boxShadow = "none";
+
+      clone.style.transform = "none";
+
+
+      /*
+        EXPORT IMAGE FIX.
+
+        We reproduce the SAME 120% overscan dimensions
+        as the live preview.
+
+        This prevents the exported product photo
+        from becoming stretched / squashed.
+      */
+
+      const cloneImage =
+        clone.querySelector("#pinImage");
+
+      if (cloneImage) {
+        cloneImage.style.position = "absolute";
+
+        cloneImage.style.width = "120%";
+        cloneImage.style.height = "120%";
+
+        cloneImage.style.left = "-10%";
+        cloneImage.style.top = "-10%";
+
+        cloneImage.style.maxWidth = "none";
+
+        cloneImage.style.objectFit = "cover";
+        cloneImage.style.objectPosition = "50% 50%";
+
+        cloneImage.style.transform =
+          getImageTransform();
+
+        cloneImage.style.transformOrigin =
+          "center center";
+      }
+
+
+      /*
+        Export text sizes.
+
+        Visible preview uses responsive CSS.
+        Export needs explicit sizes because it is
+        rendered at 1000px wide offscreen.
+      */
+
+      const cloneHeadline =
+        clone.querySelector("#pinHeadline");
+
+      if (cloneHeadline) {
+        cloneHeadline.style.fontSize = "72px";
+        cloneHeadline.style.lineHeight = "1.08";
+
+        cloneHeadline.style.fontFamily =
+          FONT_FAMILIES[state.font] ||
+          FONT_FAMILIES["league-spartan"];
+
+        cloneHeadline.style.color =
+          state.color;
+      }
+
+
+      const cloneSubheadline =
+        clone.querySelector("#pinSubheadline");
+
+      if (cloneSubheadline) {
+        cloneSubheadline.style.fontSize = "34px";
+        cloneSubheadline.style.lineHeight = "1.25";
+      }
+
+
+      /*
+        CTA EXPORT FIX.
+
+        Do not hide or rebuild the CTA.
+        We preserve the exact current selection,
+        including LINK IN BIO.
+      */
+
+      const cloneCtaWrap =
+        clone.querySelector("#pinCtaWrap");
+
+      const cloneCtaLabel =
+        clone.querySelector("#pinCtaLabel");
+
+      if (cloneCtaWrap) {
+        if (state.ctaType === "none") {
+          cloneCtaWrap.style.display = "none";
+        } else {
+          cloneCtaWrap.style.display = "block";
+        }
+      }
+
+      if (cloneCtaLabel) {
+        let ctaText = state.ctaType;
+
+        if (state.ctaType === "custom") {
+          ctaText =
+            state.customCta.trim() ||
+            "SHOP NOW";
+        }
+
+        cloneCtaLabel.textContent =
+          ctaText;
+
+        cloneCtaLabel.style.fontSize =
+          "24px";
+      }
+
+
+      /*
+        Make CTA itself proportional to export.
+      */
+
+      if (cloneCtaWrap) {
+        const badge =
+          cloneCtaWrap.querySelector(
+            "span.inline-flex"
+          );
+
+        if (badge) {
+          badge.style.padding =
+            "14px 24px";
+
+          badge.style.marginTop =
+            "12px";
+
+          badge.style.gap =
+            "10px";
+        }
+      }
+
+
+      /*
+        Put export clone into ghost.
+      */
+
+      dom.exportGhost.innerHTML = "";
+
+      dom.exportGhost.style.width =
+        `${CONFIG.exportWidth}px`;
+
+      dom.exportGhost.style.height =
+        `${CONFIG.exportHeight}px`;
+
+      dom.exportGhost.appendChild(clone);
+
+
+      /*
+        Wait for image decode AFTER clone enters DOM.
+      */
+
+      await waitForCloneImage(clone);
+
+
+      /*
+        Let browser finish layout.
+      */
+
+      await new Promise(function (resolve) {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(resolve);
+        });
+      });
+
+
+      if (typeof html2canvas === "undefined") {
+        throw new Error(
+          "html2canvas is not loaded."
+        );
+      }
+
+
+      /*
+        Exact 1000 × 1500 output.
+      */
+
+      const canvas =
+        await html2canvas(clone, {
+          width: CONFIG.exportWidth,
+          height: CONFIG.exportHeight,
+          scale: 1,
+
+          useCORS: true,
+
+          backgroundColor: null,
+
+          logging: false,
+
+          windowWidth:
+            CONFIG.exportWidth,
+
+          windowHeight:
+            CONFIG.exportHeight,
+        });
+
+
+      /*
+        Export file.
+      */
+
+      const filename =
+        makeFilename();
+
+
+      /*
+        iPhone/iPad Safari:
+        opening the generated image is more reliable
+        than relying on the download attribute.
+
+        User can then Save Image / Save to Files.
+      */
+
+      const isIOS =
+        /iPad|iPhone|iPod/.test(
+          navigator.userAgent
+        ) ||
+        (
+          navigator.platform === "MacIntel" &&
+          navigator.maxTouchPoints > 1
         );
 
-      },
-      {
-        passive: true,
-      }
-    );
 
+      if (isIOS) {
+        const dataUrl =
+          canvas.toDataURL(
+            "image/png",
+            1
+          );
+
+        const newWindow =
+          window.open();
+
+        if (newWindow) {
+          newWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <meta
+                  name="viewport"
+                  content="width=device-width,initial-scale=1"
+                >
+
+                <title>
+                  ${filename}
+                </title>
+
+                <style>
+                  html,
+                  body {
+                    margin: 0;
+                    padding: 0;
+                    background: #111827;
+                    min-height: 100%;
+                  }
+
+                  body {
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: center;
+                  }
+
+                  img {
+                    display: block;
+                    width: 100%;
+                    height: auto;
+                    max-width: 1000px;
+                  }
+                </style>
+              </head>
+
+              <body>
+                <img
+                  src="${dataUrl}"
+                  alt="Pinterest Pin"
+                >
+              </body>
+            </html>
+          `);
+
+          newWindow.document.close();
+        } else {
+          window.location.href =
+            dataUrl;
+        }
+
+      } else {
+
+        const dataUrl =
+          canvas.toDataURL(
+            "image/png",
+            1
+          );
+
+        const link =
+          document.createElement("a");
+
+        link.href = dataUrl;
+        link.download = filename;
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        link.remove();
+      }
+
+
+      dom.exportGhost.innerHTML = "";
+
+      setExportButtonSuccess();
+
+
+      setTimeout(function () {
+        resetExportButton();
+
+        state.isExporting = false;
+      }, CONFIG.successDuration);
+
+    } catch (error) {
+      console.error(
+        "PinForge export error:",
+        error
+      );
+
+      dom.exportGhost.innerHTML = "";
+
+      resetExportButton();
+
+      state.isExporting = false;
+
+      alert(
+        "Export failed. Please try again."
+      );
+    }
+  }
+
+
+  function setupExporter() {
+    dom.downloadBtn?.addEventListener(
+      "click",
+      exportPin
+    );
   }
 
 
   /* ==========================================================================
-     18. INITIAL STATE
+     17. INITIAL STATE
      ========================================================================== */
 
   function setInitialState() {
+    /*
+      Read existing input values if any.
+    */
+
+    state.headline =
+      dom.headlineInput?.value || "";
+
+    state.subheadline =
+      dom.subheadlineInput?.value || "";
+
+
+    /*
+      Image defaults.
+    */
 
     resetImagePosition();
 
 
-    state.style =
-      "bottom";
+    /*
+      Bottom overlay.
+    */
 
-    applyOverlayPosition();
+    setOverlayStyle("bottom");
 
+
+    /*
+      League Spartan.
+    */
 
     state.font =
       "league-spartan";
@@ -1763,67 +1410,62 @@
     applyFont();
 
 
-    state.color =
-      "#ffffff";
+    /*
+      White headline.
+    */
 
-    applyColor(
-      "#ffffff"
-    );
+    applyColor("#ffffff");
 
+
+    /*
+      CTA defaults to SHOP ON ETSY.
+    */
 
     state.ctaType =
+      dom.ctaSelect?.value ||
       "SHOP ON ETSY";
-
-
-    if (dom.ctaSelect) {
-
-      dom.ctaSelect.value =
-        "SHOP ON ETSY";
-
-    }
-
 
     renderCTA();
 
 
-    setCustomize(false);
+    /*
+      Customize closed.
+    */
+
+    setCustomizeOpen(false);
+
+
+    /*
+      Counters.
+    */
+
+    if (dom.headlineCount) {
+      dom.headlineCount.textContent =
+        `${state.headline.length}/60`;
+    }
+
+    if (dom.subheadlineCount) {
+      dom.subheadlineCount.textContent =
+        `${state.subheadline.length}/80`;
+    }
 
 
     renderHeadline();
-
     renderSubheadline();
-
-
-    if (dom.headlineCount) {
-
-      dom.headlineCount.textContent =
-        "0/60";
-
-    }
-
-
-    if (dom.subheadlineCount) {
-
-      dom.subheadlineCount.textContent =
-        "0/80";
-
-    }
 
 
     setTimeout(
       updateStylePill,
       100
     );
-
   }
 
 
   /* ==========================================================================
-     19. INIT
+     18. INIT
      ========================================================================== */
 
   function init() {
-
     setupUpload();
 
     setupImageControls();
@@ -1840,39 +1482,27 @@
 
     setupCTA();
 
+    setupMobilePreview();
+
+    setupExporter();
+
     setupHeader();
 
-
-    dom.downloadBtn?.addEventListener(
-      "click",
-      exportPin
-    );
-
-
     setInitialState();
-
 
     console.log(
       "PinForge stable build initialized ✨"
     );
-
   }
 
 
-  if (
-    document.readyState ===
-    "loading"
-  ) {
-
+  if (document.readyState === "loading") {
     document.addEventListener(
       "DOMContentLoaded",
       init
     );
-
   } else {
-
     init();
-
   }
 
 })();
