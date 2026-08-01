@@ -1,27 +1,36 @@
 /* ==========================================================================
-   PinForge v0.2.2 — app.js
-   FIXED:
-   - Position Y benar-benar bergerak
-   - Position X benar-benar bergerak
-   - Zoom tetap bekerja
-   - Upload image reset ke 100 / 50 / 50
-   - Mobile floating preview TANPA membuat page flicker
-   - Export exact 1000 × 1500
+   PinForge v0.2 — app.js
+   FULL REPLACEMENT
+   Matches current index.html + style.css
+
+   Fixes:
+   - Upload image
+   - Zoom
+   - Position X
+   - Position Y
+   - Overlay Bottom / Center / Top
+   - Headline + Subheadline
+   - Font selector
+   - Headline color
+   - CTA selector + custom CTA
+   - Customize accordion
+   - Exact 1000 × 1500 export
+   - Prevent distorted / stretched export image
+   - Preserve CTA text in export
+   - Better iOS / Safari export handling
    ========================================================================== */
 
 (function () {
   "use strict";
 
   /* ==========================================================================
-     CONFIG
+     1. CONFIG
      ========================================================================== */
 
   const CONFIG = {
     export: {
       width: 1000,
       height: 1500,
-      headlineFontRatio: 0.072,
-      subheadlineFontRatio: 0.034,
     },
 
     text: {
@@ -37,21 +46,23 @@
     cta: {
       customValue: "custom",
       noneValue: "none",
+      defaultValue: "SHOP ON ETSY",
     },
 
-    successMessageDurationMs: 1400,
+    successMessageDurationMs: 1600,
     headerScrollThresholdPx: 8,
   };
 
 
   /* ==========================================================================
-     OVERLAY PRESETS
+     2. OVERLAY PRESETS
      ========================================================================== */
 
   const STYLE_PRESETS = {
     bottom: {
       wrap:
         "absolute inset-x-0 bottom-0 p-[6%] flex flex-col gap-2 text-left items-start",
+
       scrim:
         "absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none",
     },
@@ -59,6 +70,7 @@
     center: {
       wrap:
         "absolute inset-x-0 top-1/2 -translate-y-1/2 p-[6%] flex flex-col items-center text-center gap-2",
+
       scrim:
         "absolute inset-0 bg-black/35 pointer-events-none",
     },
@@ -66,6 +78,7 @@
     top: {
       wrap:
         "absolute inset-x-0 top-0 p-[6%] flex flex-col gap-2 text-left items-start",
+
       scrim:
         "absolute inset-x-0 top-0 h-[46%] bg-gradient-to-b from-black/70 via-black/25 to-transparent pointer-events-none",
     },
@@ -73,7 +86,7 @@
 
 
   /* ==========================================================================
-     FONT FAMILIES
+     3. FONT FAMILIES
      ========================================================================== */
 
   const FONT_FAMILIES = {
@@ -87,7 +100,7 @@
 
 
   /* ==========================================================================
-     ICONS
+     4. ICONS
      ========================================================================== */
 
   const ICONS = {
@@ -119,135 +132,72 @@
 
 
   /* ==========================================================================
-     DOM CACHE
+     5. DOM CACHE
      ========================================================================== */
 
   const dom = {
     siteHeader: document.getElementById("siteHeader"),
 
-    // Upload
+    /* Upload */
     dropzone: document.getElementById("dropzone"),
-    fileInput:
-      document.getElementById("fileInput") ||
-      document.getElementById("imageInput"),
+    fileInput: document.getElementById("fileInput"),
+    removeImageBtn: document.getElementById("removeImageBtn"),
 
-    removeImageBtn:
-      document.getElementById("removeImageBtn"),
+    /* Preview image */
+    pinImageWrap: document.getElementById("pinImageWrap"),
+    pinImage: document.getElementById("pinImage"),
+    pinPlaceholder: document.getElementById("pinPlaceholder"),
 
-    pinImage:
-      document.getElementById("pinImage"),
+    /* Image controls */
+    zoomSlider: document.getElementById("zoomSlider"),
+    zoomValue: document.getElementById("zoomValue"),
+    posXSlider: document.getElementById("posXSlider"),
+    posYSlider: document.getElementById("posYSlider"),
+    resetPositionBtn: document.getElementById("resetPositionBtn"),
 
-    pinPlaceholder:
-      document.getElementById("pinPlaceholder") ||
-      document.getElementById("pinImagePlaceholder"),
+    /* Text */
+    headlineInput: document.getElementById("headlineInput"),
+    subheadlineInput: document.getElementById("subheadlineInput"),
+    headlineCount: document.getElementById("headlineCount"),
+    subheadlineCount: document.getElementById("subheadlineCount"),
 
-    // Image adjustments
-    zoomSlider:
-      document.getElementById("zoomSlider"),
+    pinHeadline: document.getElementById("pinHeadline"),
+    pinSubheadline: document.getElementById("pinSubheadline"),
 
-    zoomValue:
-      document.getElementById("zoomValue"),
+    /* Overlay */
+    styleToggle: document.getElementById("styleToggle"),
+    styleTogglePill: document.getElementById("styleTogglePill"),
+    pinTextWrap: document.getElementById("pinTextWrap"),
+    pinScrim: document.getElementById("pinScrim"),
 
-    posXSlider:
-      document.getElementById("posXSlider"),
+    /* Customize */
+    customizeToggleBtn: document.getElementById("customizeToggleBtn"),
+    customizePanel: document.getElementById("customizePanel"),
+    customizeChevron: document.getElementById("customizeChevron"),
 
-    posYSlider:
-      document.getElementById("posYSlider") ||
-      document.getElementById("positionYInput"),
+    /* Font */
+    fontSelector: document.getElementById("fontSelector"),
 
-    posXValue:
-      document.getElementById("posXValue"),
+    /* Color */
+    colorSelector: document.getElementById("colorSelector"),
+    customColorSwatch: document.getElementById("customColorSwatch"),
+    customColorInput: document.getElementById("customColorInput"),
 
-    posYValue:
-      document.getElementById("posYValue") ||
-      document.getElementById("positionYVal"),
+    /* CTA */
+    ctaSelect: document.getElementById("ctaSelect"),
+    ctaCustomInput: document.getElementById("ctaCustomInput"),
+    pinCtaWrap: document.getElementById("pinCtaWrap"),
+    pinCtaLabel: document.getElementById("pinCtaLabel"),
 
-    resetPositionBtn:
-      document.getElementById("resetPositionBtn"),
-
-    // Text
-    headlineInput:
-      document.getElementById("headlineInput"),
-
-    subheadlineInput:
-      document.getElementById("subheadlineInput"),
-
-    headlineCount:
-      document.getElementById("headlineCount"),
-
-    subheadlineCount:
-      document.getElementById("subheadlineCount"),
-
-    pinHeadline:
-      document.getElementById("pinHeadline"),
-
-    pinSubheadline:
-      document.getElementById("pinSubheadline"),
-
-    // Overlay
-    styleToggle:
-      document.getElementById("styleToggle"),
-
-    styleTogglePill:
-      document.getElementById("styleTogglePill"),
-
-    pinTextWrap:
-      document.getElementById("pinTextWrap"),
-
-    pinScrim:
-      document.getElementById("pinScrim"),
-
-    // Customize
-    customizeToggleBtn:
-      document.getElementById("customizeToggleBtn"),
-
-    customizePanel:
-      document.getElementById("customizePanel"),
-
-    customizeChevron:
-      document.getElementById("customizeChevron"),
-
-    // Font
-    fontSelector:
-      document.getElementById("fontSelector"),
-
-    // Color
-    colorSelector:
-      document.getElementById("colorSelector"),
-
-    customColorSwatch:
-      document.getElementById("customColorSwatch"),
-
-    customColorInput:
-      document.getElementById("customColorInput"),
-
-    // CTA
-    ctaSelect:
-      document.getElementById("ctaSelect"),
-
-    ctaCustomInput:
-      document.getElementById("ctaCustomInput"),
-
-    pinCtaWrap:
-      document.getElementById("pinCtaWrap"),
-
-    pinCtaLabel:
-      document.getElementById("pinCtaLabel"),
-
-    // Export
-    downloadBtn:
-      document.getElementById("downloadBtn"),
-
-    pinCard:
-      document.getElementById("pinCard"),
-
-    exportGhost:
-      document.getElementById("exportGhost"),
+    /* Export */
+    downloadBtn: document.getElementById("downloadBtn"),
+    pinCard: document.getElementById("pinCard"),
+    exportGhost: document.getElementById("exportGhost"),
   };
 
 
   /* ==========================================================================
-     STATE
+     6. STATE
      ========================================================================== */
 
   const state = {
@@ -265,7 +215,7 @@
     font: "league-spartan",
     color: "#ffffff",
 
-    ctaType: "SHOP ON ETSY",
+    ctaType: CONFIG.cta.defaultValue,
     customCta: "",
 
     isCustomizingOpen: false,
@@ -274,33 +224,25 @@
 
 
   /* ==========================================================================
-     IMAGE POSITION — FIXED
+     7. IMAGE TRANSFORM
      ========================================================================== */
 
   function applyImageTransform() {
     if (!dom.pinImage) return;
 
-    /*
-      IMPORTANT FIX:
-
-      We DO NOT translate the whole image anymore.
-
-      object-fit: cover already crops the image.
-
-      object-position controls WHICH PART of the image
-      is visible inside that crop.
-
-      Therefore:
-      X slider = horizontal crop position
-      Y slider = vertical crop position
-      Zoom = scale only
-    */
-
     const scale = state.zoom / 100;
+
+    /*
+      IMPORTANT:
+      object-position handles X/Y movement.
+      transform handles ONLY zoom.
+
+      Do not combine translateX/Y here because that can make
+      Position Y behave strangely with object-fit: cover.
+    */
 
     dom.pinImage.style.width = "100%";
     dom.pinImage.style.height = "100%";
-
     dom.pinImage.style.objectFit = "cover";
 
     dom.pinImage.style.objectPosition =
@@ -309,11 +251,6 @@
     dom.pinImage.style.transform =
       `scale(${scale})`;
 
-    /*
-      This is important for position X/Y while zoomed.
-      Transform origin follows the selected focal point.
-    */
-
     dom.pinImage.style.transformOrigin =
       `${state.posX}% ${state.posY}%`;
   }
@@ -321,7 +258,7 @@
 
   function updateImageControls() {
     if (dom.zoomSlider) {
-      dom.zoomSlider.value = state.zoom;
+      dom.zoomSlider.value = String(state.zoom);
     }
 
     if (dom.zoomValue) {
@@ -330,25 +267,16 @@
     }
 
     if (dom.posXSlider) {
-      dom.posXSlider.value = state.posX;
+      dom.posXSlider.value =
+        String(state.posX);
     }
 
     if (dom.posYSlider) {
-      dom.posYSlider.value = state.posY;
-    }
-
-    if (dom.posXValue) {
-      dom.posXValue.textContent =
-        `${state.posX}%`;
-    }
-
-    if (dom.posYValue) {
-      dom.posYValue.textContent =
-        `${state.posY}%`;
+      dom.posYSlider.value =
+        String(state.posY);
     }
 
     applyImageTransform();
-    syncFloatingPreview();
   }
 
 
@@ -367,14 +295,14 @@
 
 
   /* ==========================================================================
-     UPLOAD
+     8. UPLOAD
      ========================================================================== */
 
   function handleFile(file) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Please upload a PNG, JPG, or WebP image.");
+      alert("Please upload a PNG or JPG image.");
       return;
     }
 
@@ -386,12 +314,16 @@
     const reader = new FileReader();
 
     reader.onload = function (event) {
-      state.imageSrc =
+      const result =
+        event.target &&
         event.target.result;
 
+      if (!result) return;
+
+      state.imageSrc = result;
+
       if (dom.pinImage) {
-        dom.pinImage.src =
-          state.imageSrc;
+        dom.pinImage.src = result;
 
         dom.pinImage.classList.remove(
           "hidden"
@@ -414,133 +346,137 @@
         );
       }
 
-      /*
-        New image ALWAYS starts:
-        Zoom 100
-        X 50
-        Y 50
-      */
-
       resetImagePosition();
 
       setTimeout(function () {
-        dom.pinImage?.classList.remove(
-          "pf-animate-in"
-        );
+        if (dom.pinImage) {
+          dom.pinImage.classList.remove(
+            "pf-animate-in"
+          );
+        }
       }, 500);
-
-      setTimeout(syncFloatingPreview, 50);
     };
 
     reader.readAsDataURL(file);
   }
 
 
+  function clearImage() {
+    state.imageSrc = null;
+
+    if (dom.pinImage) {
+      dom.pinImage.src = "";
+      dom.pinImage.classList.add("hidden");
+    }
+
+    if (dom.pinPlaceholder) {
+      dom.pinPlaceholder.classList.remove(
+        "hidden"
+      );
+    }
+
+    if (dom.removeImageBtn) {
+      dom.removeImageBtn.classList.add(
+        "hidden"
+      );
+    }
+
+    if (dom.fileInput) {
+      dom.fileInput.value = "";
+    }
+
+    resetImagePosition();
+  }
+
+
   function setupUpload() {
-    if (!dom.fileInput) return;
+    if (
+      !dom.dropzone ||
+      !dom.fileInput
+    ) {
+      return;
+    }
 
     dom.fileInput.addEventListener(
       "change",
       function (event) {
-        const file =
-          event.target.files?.[0];
+        const files =
+          event.target.files;
 
-        if (file) {
-          handleFile(file);
+        if (files && files[0]) {
+          handleFile(files[0]);
         }
       }
     );
 
 
-    if (dom.dropzone) {
-      ["dragenter", "dragover"].forEach(
-        function (eventName) {
-          dom.dropzone.addEventListener(
-            eventName,
-            function (event) {
-              event.preventDefault();
-              event.stopPropagation();
+    ["dragenter", "dragover"].forEach(
+      function (eventName) {
+        dom.dropzone.addEventListener(
+          eventName,
+          function (event) {
+            event.preventDefault();
+            event.stopPropagation();
 
-              dom.dropzone.classList.add(
-                "is-dragover"
-              );
-            }
-          );
-        }
-      );
-
-
-      ["dragleave", "drop"].forEach(
-        function (eventName) {
-          dom.dropzone.addEventListener(
-            eventName,
-            function (event) {
-              event.preventDefault();
-              event.stopPropagation();
-
-              dom.dropzone.classList.remove(
-                "is-dragover"
-              );
-            }
-          );
-        }
-      );
-
-
-      dom.dropzone.addEventListener(
-        "drop",
-        function (event) {
-          const files =
-            event.dataTransfer?.files;
-
-          if (files?.[0]) {
-            handleFile(files[0]);
+            dom.dropzone.classList.add(
+              "is-dragover"
+            );
           }
+        );
+      }
+    );
+
+
+    ["dragleave", "drop"].forEach(
+      function (eventName) {
+        dom.dropzone.addEventListener(
+          eventName,
+          function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            dom.dropzone.classList.remove(
+              "is-dragover"
+            );
+          }
+        );
+      }
+    );
+
+
+    dom.dropzone.addEventListener(
+      "drop",
+      function (event) {
+        const files =
+          event.dataTransfer &&
+          event.dataTransfer.files;
+
+        if (files && files[0]) {
+          handleFile(files[0]);
+        }
+      }
+    );
+
+
+    if (dom.removeImageBtn) {
+      dom.removeImageBtn.addEventListener(
+        "click",
+        function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          clearImage();
         }
       );
     }
-
-
-    dom.removeImageBtn?.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        state.imageSrc = null;
-
-        if (dom.pinImage) {
-          dom.pinImage.src = "";
-          dom.pinImage.classList.add(
-            "hidden"
-          );
-        }
-
-        dom.pinPlaceholder?.classList.remove(
-          "hidden"
-        );
-
-        dom.removeImageBtn?.classList.add(
-          "hidden"
-        );
-
-        if (dom.fileInput) {
-          dom.fileInput.value = "";
-        }
-
-        resetImagePosition();
-        syncFloatingPreview();
-      }
-    );
   }
 
 
   /* ==========================================================================
-     IMAGE CONTROLS
+     9. IMAGE ADJUSTMENTS
      ========================================================================== */
 
   function setupImagePosition() {
-
     if (dom.zoomSlider) {
       dom.zoomSlider.addEventListener(
         "input",
@@ -554,7 +490,6 @@
           }
 
           applyImageTransform();
-          syncFloatingPreview();
         }
       );
     }
@@ -567,21 +502,11 @@
           state.posX =
             Number(event.target.value);
 
-          if (dom.posXValue) {
-            dom.posXValue.textContent =
-              `${state.posX}%`;
-          }
-
           applyImageTransform();
-          syncFloatingPreview();
         }
       );
     }
 
-
-    /*
-      THIS is the Position Y fix.
-    */
 
     if (dom.posYSlider) {
       dom.posYSlider.addEventListener(
@@ -590,78 +515,77 @@
           state.posY =
             Number(event.target.value);
 
-          if (dom.posYValue) {
-            dom.posYValue.textContent =
-              `${state.posY}%`;
-          }
-
           applyImageTransform();
-          syncFloatingPreview();
         }
       );
     }
 
 
-    dom.resetPositionBtn?.addEventListener(
-      "click",
-      function () {
-        resetImagePosition();
-      }
-    );
+    if (dom.resetPositionBtn) {
+      dom.resetPositionBtn.addEventListener(
+        "click",
+        function () {
+          resetImagePosition();
+        }
+      );
+    }
   }
 
 
   /* ==========================================================================
-     TEXT
+     10. TEXT PREVIEW
      ========================================================================== */
 
-  function setupTextPreview() {
+  function updateHeadline() {
+    if (!dom.pinHeadline) return;
 
-    if (
-      dom.headlineInput &&
-      dom.pinHeadline
-    ) {
+    dom.pinHeadline.textContent =
+      state.headline.trim() ||
+      CONFIG.text.headlineFallback;
+  }
+
+
+  function updateSubheadline() {
+    if (!dom.pinSubheadline) return;
+
+    dom.pinSubheadline.textContent =
+      state.subheadline.trim() ||
+      CONFIG.text.subheadlineFallback;
+  }
+
+
+  function setupTextPreview() {
+    if (dom.headlineInput) {
       dom.headlineInput.addEventListener(
         "input",
         function (event) {
           state.headline =
             event.target.value;
 
-          dom.pinHeadline.textContent =
-            state.headline.trim() ||
-            CONFIG.text.headlineFallback;
+          updateHeadline();
 
           if (dom.headlineCount) {
             dom.headlineCount.textContent =
               `${state.headline.length}/60`;
           }
-
-          syncFloatingPreview();
         }
       );
     }
 
 
-    if (
-      dom.subheadlineInput &&
-      dom.pinSubheadline
-    ) {
+    if (dom.subheadlineInput) {
       dom.subheadlineInput.addEventListener(
         "input",
         function (event) {
           state.subheadline =
             event.target.value;
 
-          dom.pinSubheadline.textContent =
-            state.subheadline.trim() ||
-            CONFIG.text.subheadlineFallback;
+          updateSubheadline();
 
           if (dom.subheadlineCount) {
             dom.subheadlineCount.textContent =
               `${state.subheadline.length}/80`;
           }
-
-          syncFloatingPreview();
         }
       );
     }
@@ -669,7 +593,7 @@
 
 
   /* ==========================================================================
-     OVERLAY
+     11. OVERLAY POSITION
      ========================================================================== */
 
   function updatePillPosition() {
@@ -725,23 +649,22 @@
         preset.scrim;
     }
 
-
-    dom.styleToggle
-      ?.querySelectorAll(".style-btn")
-      .forEach(function (button) {
-        button.classList.toggle(
-          "is-active",
-          button.dataset.style ===
-            styleKey
-        );
-      });
-
+    if (dom.styleToggle) {
+      dom.styleToggle
+        .querySelectorAll(".style-btn")
+        .forEach(function (button) {
+          button.classList.toggle(
+            "is-active",
+            button.getAttribute(
+              "data-style"
+            ) === styleKey
+          );
+        });
+    }
 
     requestAnimationFrame(
       updatePillPosition
     );
-
-    syncFloatingPreview();
   }
 
 
@@ -758,48 +681,67 @@
 
         if (!button) return;
 
-        setOverlayStyle(
-          button.dataset.style
-        );
+        const styleKey =
+          button.getAttribute(
+            "data-style"
+          );
+
+        setOverlayStyle(styleKey);
       }
     );
 
 
     window.addEventListener(
       "resize",
-      updatePillPosition
+      function () {
+        requestAnimationFrame(
+          updatePillPosition
+        );
+      },
+      { passive: true }
     );
   }
 
 
   /* ==========================================================================
-     CUSTOMIZE ACCORDION
+     12. CUSTOMIZE ACCORDION
      ========================================================================== */
 
   function setCustomizePanel(open) {
     state.isCustomizingOpen = open;
 
-    dom.customizePanel?.classList.toggle(
-      "is-open",
-      open
-    );
+    if (dom.customizePanel) {
+      dom.customizePanel.classList.toggle(
+        "is-open",
+        open
+      );
+    }
 
-    dom.customizeChevron?.classList.toggle(
-      "is-open",
-      open
-    );
+    if (dom.customizeChevron) {
+      dom.customizeChevron.classList.toggle(
+        "is-open",
+        open
+      );
+    }
 
-    dom.customizeToggleBtn?.setAttribute(
-      "aria-expanded",
-      open ? "true" : "false"
-    );
+    if (dom.customizeToggleBtn) {
+      dom.customizeToggleBtn.setAttribute(
+        "aria-expanded",
+        open ? "true" : "false"
+      );
+    }
   }
 
 
   function setupDisclosure() {
-    setCustomizePanel(false);
+    if (
+      !dom.customizeToggleBtn ||
+      !dom.customizePanel
+    ) {
+      return;
+    }
 
-    dom.customizeToggleBtn?.addEventListener(
+    dom.customizeToggleBtn.addEventListener(
       "click",
       function () {
         setCustomizePanel(
@@ -811,8 +753,22 @@
 
 
   /* ==========================================================================
-     FONT
+     13. FONT SELECTOR
      ========================================================================== */
+
+  function applyFont(fontKey) {
+    if (!FONT_FAMILIES[fontKey]) {
+      return;
+    }
+
+    state.font = fontKey;
+
+    if (dom.pinHeadline) {
+      dom.pinHeadline.style.fontFamily =
+        FONT_FAMILIES[fontKey];
+    }
+  }
+
 
   function setupFontSelector() {
     if (!dom.fontSelector) return;
@@ -828,19 +784,15 @@
         if (!chip) return;
 
         const fontKey =
-          chip.dataset.font;
+          chip.getAttribute(
+            "data-font"
+          );
 
         if (!FONT_FAMILIES[fontKey]) {
           return;
         }
 
-        state.font = fontKey;
-
-        if (dom.pinHeadline) {
-          dom.pinHeadline.style.fontFamily =
-            FONT_FAMILIES[fontKey];
-        }
-
+        applyFont(fontKey);
 
         dom.fontSelector
           .querySelectorAll(".font-chip")
@@ -850,32 +802,45 @@
               item === chip
             );
           });
-
-        syncFloatingPreview();
       }
     );
   }
 
 
   /* ==========================================================================
-     COLOR
+     14. HEADLINE COLOR
      ========================================================================== */
 
   function applyHeadlineColor(color) {
+    if (!color) return;
+
     state.color = color;
 
     if (dom.pinHeadline) {
       dom.pinHeadline.style.color =
         color;
     }
+  }
 
-    syncFloatingPreview();
+
+  function updateActiveColorSwatch(
+    activeSwatch
+  ) {
+    if (!dom.colorSelector) return;
+
+    dom.colorSelector
+      .querySelectorAll(".color-swatch")
+      .forEach(function (item) {
+        item.classList.toggle(
+          "is-active",
+          item === activeSwatch
+        );
+      });
   }
 
 
   function setupColorSelector() {
     if (!dom.colorSelector) return;
-
 
     dom.colorSelector.addEventListener(
       "click",
@@ -888,53 +853,64 @@
         if (!swatch) return;
 
         const color =
-          swatch.dataset.color;
+          swatch.getAttribute(
+            "data-color"
+          );
 
         if (!color) return;
 
         applyHeadlineColor(color);
-
-
-        dom.colorSelector
-          .querySelectorAll(
-            ".color-swatch"
-          )
-          .forEach(function (item) {
-            item.classList.toggle(
-              "is-active",
-              item === swatch
-            );
-          });
+        updateActiveColorSwatch(swatch);
       }
     );
 
 
-    dom.customColorInput?.addEventListener(
-      "input",
-      function (event) {
-        applyHeadlineColor(
-          event.target.value
-        );
+    if (
+      dom.customColorInput &&
+      dom.customColorSwatch
+    ) {
+      dom.customColorInput.addEventListener(
+        "input",
+        function (event) {
+          const color =
+            event.target.value;
 
-        dom.colorSelector
-          ?.querySelectorAll(
-            ".color-swatch"
-          )
-          .forEach(function (item) {
-            item.classList.toggle(
-              "is-active",
-              item ===
-                dom.customColorSwatch
-            );
-          });
-      }
-    );
+          applyHeadlineColor(color);
+
+          updateActiveColorSwatch(
+            dom.customColorSwatch
+          );
+        }
+      );
+    }
   }
 
 
   /* ==========================================================================
-     CTA
+     15. CTA
      ========================================================================== */
+
+  function getCurrentCtaText() {
+    if (
+      state.ctaType ===
+      CONFIG.cta.noneValue
+    ) {
+      return "";
+    }
+
+    if (
+      state.ctaType ===
+      CONFIG.cta.customValue
+    ) {
+      return (
+        state.customCta.trim() ||
+        "SHOP NOW"
+      );
+    }
+
+    return state.ctaType;
+  }
+
 
   function updateCtaDisplay() {
     if (
@@ -944,7 +920,6 @@
       return;
     }
 
-
     if (
       state.ctaType ===
       CONFIG.cta.noneValue
@@ -953,40 +928,20 @@
         "hidden"
       );
 
-      syncFloatingPreview();
       return;
     }
-
 
     dom.pinCtaWrap.classList.remove(
       "hidden"
     );
 
-
-    let label =
-      state.ctaType;
-
-
-    if (
-      state.ctaType ===
-      CONFIG.cta.customValue
-    ) {
-      label =
-        state.customCta.trim() ||
-        "SHOP NOW";
-    }
-
-
     dom.pinCtaLabel.textContent =
-      label;
-
-    syncFloatingPreview();
+      getCurrentCtaText();
   }
 
 
   function setupCtaSelector() {
     if (!dom.ctaSelect) return;
-
 
     dom.ctaSelect.addEventListener(
       "change",
@@ -994,233 +949,758 @@
         state.ctaType =
           event.target.value;
 
+        if (dom.ctaCustomInput) {
+          const showCustom =
+            state.ctaType ===
+            CONFIG.cta.customValue;
 
-        dom.ctaCustomInput?.classList.toggle(
-          "hidden",
-          state.ctaType !==
-            CONFIG.cta.customValue
-        );
+          dom.ctaCustomInput.classList.toggle(
+            "hidden",
+            !showCustom
+          );
 
-
-        updateCtaDisplay();
-      }
-    );
-
-
-    dom.ctaCustomInput?.addEventListener(
-      "input",
-      function (event) {
-        state.customCta =
-          event.target.value;
+          if (showCustom) {
+            dom.ctaCustomInput.focus();
+          }
+        }
 
         updateCtaDisplay();
       }
     );
+
+
+    if (dom.ctaCustomInput) {
+      dom.ctaCustomInput.addEventListener(
+        "input",
+        function (event) {
+          state.customCta =
+            event.target.value;
+
+          updateCtaDisplay();
+        }
+      );
+    }
   }
 
 
   /* ==========================================================================
-     MOBILE FLOATING PREVIEW
+     16. EXPORT HELPERS
      ========================================================================== */
 
-  let floatingPreview = null;
-  let floatingCard = null;
-
-
-  function createFloatingPreview() {
-    if (
-      floatingPreview ||
-      !dom.pinCard
-    ) {
-      return;
-    }
-
-
-    floatingPreview =
-      document.createElement("div");
-
-    floatingPreview.id =
-      "pfFloatingPreview";
-
-
-    /*
-      IMPORTANT:
-
-      position: fixed means this preview DOES NOT
-      affect document layout.
-
-      Therefore no page jumping / flickering.
-    */
-
-    Object.assign(
-      floatingPreview.style,
-      {
-        position: "fixed",
-        top: "76px",
-        right: "12px",
-        width: "128px",
-        zIndex: "999",
-        display: "none",
-        pointerEvents: "none",
-        borderRadius: "12px",
-        overflow: "hidden",
-        boxShadow:
-          "0 10px 30px rgba(0,0,0,0.22)",
-        background: "#ffffff",
-      }
-    );
-
-
-    document.body.appendChild(
-      floatingPreview
-    );
-
-    syncFloatingPreview();
-  }
-
-
-  function syncFloatingPreview() {
-    if (
-      !floatingPreview ||
-      !dom.pinCard
-    ) {
-      return;
-    }
-
-
-    /*
-      Rebuild clone.
-
-      This is intentionally separate from the
-      real #pinCard.
-
-      The actual card NEVER becomes sticky.
-    */
-
-    floatingPreview.innerHTML = "";
-
-    floatingCard =
-      dom.pinCard.cloneNode(true);
-
-
-    /*
-      Remove duplicate IDs from clone.
-      Avoids duplicate-ID JS conflicts.
-    */
-
-    floatingCard
-      .querySelectorAll("[id]")
-      .forEach(function (element) {
-        element.removeAttribute("id");
-      });
-
-
-    floatingCard.removeAttribute("id");
-
-
-    Object.assign(
-      floatingCard.style,
-      {
-        width: "128px",
-        maxWidth: "128px",
-        height: "192px",
-        aspectRatio: "2 / 3",
-        margin: "0",
-        borderRadius: "10px",
-        boxShadow: "none",
-        transform: "none",
-      }
-    );
-
-
-    floatingPreview.appendChild(
-      floatingCard
-    );
-  }
-
-
-  function updateFloatingVisibility() {
-    if (!floatingPreview) return;
-
-
-    /*
-      Desktop:
-      don't need mini preview.
-    */
-
-    if (window.innerWidth >= 1024) {
-      floatingPreview.style.display =
-        "none";
-
-      return;
-    }
-
-
-    if (!dom.pinCard) return;
-
-
-    const rect =
-      dom.pinCard.getBoundingClientRect();
-
-
-    /*
-      Show floating preview only AFTER
-      the original card leaves the screen.
-
-      Hysteresis prevents rapid on/off flicker.
-    */
-
-    const shouldShow =
-      rect.bottom < 65;
-
-
-    floatingPreview.style.display =
-      shouldShow ? "block" : "none";
-  }
-
-
-  function setupFloatingPreview() {
-    createFloatingPreview();
-
-    let ticking = false;
-
-
-    function requestUpdate() {
-      if (ticking) return;
-
-      ticking = true;
-
-
+  function waitForNextPaint() {
+    return new Promise(function (resolve) {
       requestAnimationFrame(function () {
-        updateFloatingVisibility();
-
-        ticking = false;
+        requestAnimationFrame(resolve);
       });
+    });
+  }
+
+
+  function generateFilename() {
+    let filename =
+      state.headline.trim() ||
+      "pinforge-pin";
+
+    filename = filename
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .substring(0, 50);
+
+    if (!filename) {
+      filename = "pinforge-pin";
     }
 
-
-    window.addEventListener(
-      "scroll",
-      requestUpdate,
-      { passive: true }
+    return (
+      `${filename}-1000x1500.png`
     );
+  }
 
 
-    window.addEventListener(
-      "resize",
-      function () {
-        requestUpdate();
-      },
-      { passive: true }
+  function isIOSDevice() {
+    return (
+      /iPad|iPhone|iPod/.test(
+        navigator.userAgent
+      ) ||
+      (
+        navigator.platform ===
+          "MacIntel" &&
+        navigator.maxTouchPoints > 1
+      )
     );
-
-
-    requestUpdate();
   }
 
 
   /* ==========================================================================
-     EXPORT — EXACT 1000 × 1500
+     17. BUILD EXPORT CLONE
+     ========================================================================== */
+
+  function buildExportClone() {
+    const clone =
+      dom.pinCard.cloneNode(true);
+
+    clone.id = "pinCardExport";
+
+    /*
+      ROOT
+    */
+
+    clone.style.setProperty(
+      "position",
+      "relative",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "width",
+      "1000px",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "height",
+      "1500px",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "min-width",
+      "1000px",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "max-width",
+      "1000px",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "min-height",
+      "1500px",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "max-height",
+      "1500px",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "aspect-ratio",
+      "auto",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "overflow",
+      "hidden",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "border-radius",
+      "0",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "box-shadow",
+      "none",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "transform",
+      "none",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "transition",
+      "none",
+      "important"
+    );
+
+    clone.style.setProperty(
+      "margin",
+      "0",
+      "important"
+    );
+
+
+    /* ======================================================================
+       IMAGE WRAPPER
+       ====================================================================== */
+
+    const imageWrap =
+      clone.querySelector(
+        "#pinImageWrap"
+      );
+
+    if (imageWrap) {
+      imageWrap.style.setProperty(
+        "position",
+        "absolute",
+        "important"
+      );
+
+      imageWrap.style.setProperty(
+        "inset",
+        "0",
+        "important"
+      );
+
+      imageWrap.style.setProperty(
+        "width",
+        "1000px",
+        "important"
+      );
+
+      imageWrap.style.setProperty(
+        "height",
+        "1500px",
+        "important"
+      );
+
+      imageWrap.style.setProperty(
+        "overflow",
+        "hidden",
+        "important"
+      );
+    }
+
+
+    /* ======================================================================
+       IMAGE
+       ====================================================================== */
+
+    const image =
+      clone.querySelector(
+        "#pinImage"
+      );
+
+    if (image && state.imageSrc) {
+      image.src = state.imageSrc;
+
+      image.classList.remove("hidden");
+
+      image.style.setProperty(
+        "display",
+        "block",
+        "important"
+      );
+
+      image.style.setProperty(
+        "position",
+        "absolute",
+        "important"
+      );
+
+      image.style.setProperty(
+        "top",
+        "0",
+        "important"
+      );
+
+      image.style.setProperty(
+        "left",
+        "0",
+        "important"
+      );
+
+      image.style.setProperty(
+        "width",
+        "100%",
+        "important"
+      );
+
+      image.style.setProperty(
+        "height",
+        "100%",
+        "important"
+      );
+
+      /*
+        THE IMPORTANT PART:
+
+        object-fit cover = NEVER stretch image.
+      */
+
+      image.style.setProperty(
+        "object-fit",
+        "cover",
+        "important"
+      );
+
+      image.style.setProperty(
+        "object-position",
+        `${state.posX}% ${state.posY}%`,
+        "important"
+      );
+
+      image.style.setProperty(
+        "transform",
+        `scale(${state.zoom / 100})`,
+        "important"
+      );
+
+      image.style.setProperty(
+        "transform-origin",
+        `${state.posX}% ${state.posY}%`,
+        "important"
+      );
+
+      image.style.setProperty(
+        "max-width",
+        "none",
+        "important"
+      );
+
+      image.style.setProperty(
+        "max-height",
+        "none",
+        "important"
+      );
+
+      image.style.setProperty(
+        "transition",
+        "none",
+        "important"
+      );
+    }
+
+
+    /* ======================================================================
+       PLACEHOLDER
+       ====================================================================== */
+
+    const placeholder =
+      clone.querySelector(
+        "#pinPlaceholder"
+      );
+
+    if (
+      placeholder &&
+      state.imageSrc
+    ) {
+      placeholder.style.display =
+        "none";
+    }
+
+
+    /* ======================================================================
+       SCRIM
+       ====================================================================== */
+
+    const scrim =
+      clone.querySelector(
+        "#pinScrim"
+      );
+
+    if (scrim) {
+      scrim.className = "";
+
+      scrim.style.position =
+        "absolute";
+
+      scrim.style.left = "0";
+      scrim.style.right = "0";
+
+      scrim.style.pointerEvents =
+        "none";
+
+      scrim.style.zIndex = "5";
+
+
+      if (state.style === "bottom") {
+        scrim.style.top = "auto";
+        scrim.style.bottom = "0";
+        scrim.style.height = "50%";
+
+        scrim.style.background =
+          "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 48%, rgba(0,0,0,0) 100%)";
+      }
+
+
+      if (state.style === "top") {
+        scrim.style.top = "0";
+        scrim.style.bottom = "auto";
+        scrim.style.height = "50%";
+
+        scrim.style.background =
+          "linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 48%, rgba(0,0,0,0) 100%)";
+      }
+
+
+      if (state.style === "center") {
+        scrim.style.top = "0";
+        scrim.style.bottom = "0";
+        scrim.style.height = "100%";
+
+        scrim.style.background =
+          "rgba(0,0,0,0.35)";
+      }
+    }
+
+
+    /* ======================================================================
+       TEXT WRAPPER
+       ====================================================================== */
+
+    const textWrap =
+      clone.querySelector(
+        "#pinTextWrap"
+      );
+
+    if (textWrap) {
+      textWrap.className = "";
+
+      textWrap.style.position =
+        "absolute";
+
+      textWrap.style.left = "0";
+      textWrap.style.right = "0";
+
+      textWrap.style.zIndex = "10";
+
+      textWrap.style.padding =
+        "60px";
+
+      textWrap.style.display =
+        "flex";
+
+      textWrap.style.flexDirection =
+        "column";
+
+      textWrap.style.gap =
+        "16px";
+
+
+      if (state.style === "bottom") {
+        textWrap.style.top = "auto";
+        textWrap.style.bottom = "0";
+
+        textWrap.style.alignItems =
+          "flex-start";
+
+        textWrap.style.textAlign =
+          "left";
+
+        textWrap.style.transform =
+          "none";
+      }
+
+
+      if (state.style === "top") {
+        textWrap.style.top = "0";
+        textWrap.style.bottom = "auto";
+
+        textWrap.style.alignItems =
+          "flex-start";
+
+        textWrap.style.textAlign =
+          "left";
+
+        textWrap.style.transform =
+          "none";
+      }
+
+
+      if (state.style === "center") {
+        textWrap.style.top = "50%";
+        textWrap.style.bottom =
+          "auto";
+
+        textWrap.style.alignItems =
+          "center";
+
+        textWrap.style.textAlign =
+          "center";
+
+        textWrap.style.transform =
+          "translateY(-50%)";
+      }
+    }
+
+
+    /* ======================================================================
+       HEADLINE
+       ====================================================================== */
+
+    const headline =
+      clone.querySelector(
+        "#pinHeadline"
+      );
+
+    if (headline) {
+      headline.textContent =
+        state.headline.trim() ||
+        CONFIG.text.headlineFallback;
+
+      headline.className = "";
+
+      headline.style.display =
+        "block";
+
+      headline.style.width =
+        "100%";
+
+      headline.style.margin =
+        "0";
+
+      headline.style.padding =
+        "0";
+
+      headline.style.fontFamily =
+        FONT_FAMILIES[state.font] ||
+        FONT_FAMILIES[
+          "league-spartan"
+        ];
+
+      headline.style.fontSize =
+        "72px";
+
+      headline.style.fontWeight =
+        "700";
+
+      headline.style.lineHeight =
+        "1.08";
+
+      headline.style.letterSpacing =
+        "-0.02em";
+
+      headline.style.color =
+        state.color ||
+        "#ffffff";
+
+      headline.style.overflowWrap =
+        "break-word";
+
+      headline.style.wordBreak =
+        "normal";
+    }
+
+
+    /* ======================================================================
+       SUBHEADLINE
+       ====================================================================== */
+
+    const subheadline =
+      clone.querySelector(
+        "#pinSubheadline"
+      );
+
+    if (subheadline) {
+      subheadline.textContent =
+        state.subheadline.trim() ||
+        CONFIG.text.subheadlineFallback;
+
+      subheadline.className = "";
+
+      subheadline.style.display =
+        "block";
+
+      subheadline.style.width =
+        "100%";
+
+      subheadline.style.margin =
+        "0";
+
+      subheadline.style.padding =
+        "0";
+
+      subheadline.style.fontFamily =
+        "'Inter', sans-serif";
+
+      subheadline.style.fontSize =
+        "34px";
+
+      subheadline.style.fontWeight =
+        "500";
+
+      subheadline.style.lineHeight =
+        "1.3";
+
+      subheadline.style.color =
+        "rgba(255,255,255,0.88)";
+    }
+
+
+    /* ======================================================================
+       CTA
+       ====================================================================== */
+
+    const ctaWrap =
+      clone.querySelector(
+        "#pinCtaWrap"
+      );
+
+    const ctaLabel =
+      clone.querySelector(
+        "#pinCtaLabel"
+      );
+
+    const ctaBadge =
+      ctaWrap
+        ? ctaWrap.querySelector(
+            ":scope > span"
+          )
+        : null;
+
+
+    if (ctaWrap) {
+      ctaWrap.className = "";
+
+      ctaWrap.style.margin = "0";
+      ctaWrap.style.padding = "0";
+
+      ctaWrap.style.display =
+        state.ctaType ===
+        CONFIG.cta.noneValue
+          ? "none"
+          : "block";
+    }
+
+
+    if (
+      ctaBadge &&
+      state.ctaType !==
+        CONFIG.cta.noneValue
+    ) {
+      ctaBadge.className = "";
+
+      ctaBadge.style.display =
+        "inline-flex";
+
+      ctaBadge.style.alignItems =
+        "center";
+
+      ctaBadge.style.justifyContent =
+        "flex-start";
+
+      ctaBadge.style.gap =
+        "12px";
+
+      ctaBadge.style.width =
+        "auto";
+
+      ctaBadge.style.height =
+        "auto";
+
+      ctaBadge.style.margin =
+        "8px 0 0 0";
+
+      ctaBadge.style.padding =
+        "14px 24px";
+
+      ctaBadge.style.backgroundColor =
+        "#ffffff";
+
+      ctaBadge.style.borderRadius =
+        "9999px";
+
+      ctaBadge.style.boxShadow =
+        "0 2px 8px rgba(0,0,0,0.12)";
+
+      ctaBadge.style.whiteSpace =
+        "nowrap";
+    }
+
+
+    /*
+      CTA DOT
+    */
+
+    if (ctaBadge) {
+      const dot =
+        ctaBadge.querySelector(
+          "span:first-child"
+        );
+
+      if (dot) {
+        dot.className = "";
+
+        dot.style.display =
+          "block";
+
+        dot.style.flex =
+          "0 0 12px";
+
+        dot.style.width =
+          "12px";
+
+        dot.style.height =
+          "12px";
+
+        dot.style.borderRadius =
+          "50%";
+
+        dot.style.backgroundColor =
+          "#B88A58";
+      }
+    }
+
+
+    /*
+      CTA TEXT
+
+      We explicitly write the selected CTA again.
+      So LINK IN BIO stays LINK IN BIO in export.
+    */
+
+    if (
+      ctaLabel &&
+      state.ctaType !==
+        CONFIG.cta.noneValue
+    ) {
+      ctaLabel.className = "";
+
+      ctaLabel.textContent =
+        getCurrentCtaText();
+
+      ctaLabel.style.display =
+        "inline-block";
+
+      ctaLabel.style.position =
+        "relative";
+
+      ctaLabel.style.fontFamily =
+        "'Inter', sans-serif";
+
+      ctaLabel.style.fontSize =
+        "22px";
+
+      ctaLabel.style.fontWeight =
+        "700";
+
+      ctaLabel.style.lineHeight =
+        "1.15";
+
+      ctaLabel.style.letterSpacing =
+        "0.04em";
+
+      ctaLabel.style.color =
+        "#1F2937";
+
+      ctaLabel.style.opacity =
+        "1";
+
+      ctaLabel.style.visibility =
+        "visible";
+
+      ctaLabel.style.whiteSpace =
+        "nowrap";
+    }
+
+
+    return clone;
+  }
+
+
+  /* ==========================================================================
+     18. EXPORT PNG
      ========================================================================== */
 
   async function exportPin() {
@@ -1232,12 +1712,19 @@
       return;
     }
 
-
     state.isExporting = true;
 
 
+    /* ----------------------------------------------------------------------
+       Loading UI
+       ---------------------------------------------------------------------- */
+
     if (dom.downloadBtn) {
       dom.downloadBtn.disabled = true;
+
+      dom.downloadBtn.classList.add(
+        "opacity-90"
+      );
 
       dom.downloadBtn.innerHTML =
         `${ICONS.spinner}<span>Generating 1000×1500 Pin...</span>`;
@@ -1245,6 +1732,9 @@
 
 
     try {
+      /* --------------------------------------------------------------------
+         Wait for fonts
+         -------------------------------------------------------------------- */
 
       if (
         document.fonts &&
@@ -1254,133 +1744,107 @@
       }
 
 
+      /* --------------------------------------------------------------------
+         Build clone
+         -------------------------------------------------------------------- */
+
       const clone =
-        dom.pinCard.cloneNode(true);
+        buildExportClone();
 
 
-      clone.style.width =
-        `${CONFIG.export.width}px`;
+      /* --------------------------------------------------------------------
+         Prepare export host
+         -------------------------------------------------------------------- */
 
-      clone.style.height =
-        `${CONFIG.export.height}px`;
+      dom.exportGhost.innerHTML = "";
 
-      clone.style.minWidth =
-        `${CONFIG.export.width}px`;
-
-      clone.style.maxWidth =
-        `${CONFIG.export.width}px`;
-
-      clone.style.aspectRatio =
-        "2 / 3";
-
-      clone.style.transform =
-        "none";
-
-      clone.style.borderRadius =
-        "0";
-
-      clone.style.boxShadow =
-        "none";
-
-      clone.style.margin =
-        "0";
-
-
-      /* IMAGE */
-
-      const cloneImage =
-        clone.querySelector(
-          "#pinImage"
-        );
-
-
-      if (cloneImage) {
-        cloneImage.style.width =
-          "100%";
-
-        cloneImage.style.height =
-          "100%";
-
-        cloneImage.style.objectFit =
-          "cover";
-
-        cloneImage.style.objectPosition =
-          `${state.posX}% ${state.posY}%`;
-
-        cloneImage.style.transform =
-          `scale(${state.zoom / 100})`;
-
-        cloneImage.style.transformOrigin =
-          `${state.posX}% ${state.posY}%`;
-      }
-
-
-      /* HEADLINE */
-
-      const cloneHeadline =
-        clone.querySelector(
-          "#pinHeadline"
-        );
-
-
-      if (cloneHeadline) {
-        cloneHeadline.style.fontSize =
-          `${
-            CONFIG.export.width *
-            CONFIG.export.headlineFontRatio
-          }px`;
-
-        cloneHeadline.style.fontFamily =
-          FONT_FAMILIES[state.font];
-
-        cloneHeadline.style.color =
-          state.color;
-
-        cloneHeadline.style.lineHeight =
-          "1.05";
-      }
-
-
-      /* SUBHEADLINE */
-
-      const cloneSubheadline =
-        clone.querySelector(
-          "#pinSubheadline"
-        );
-
-
-      if (cloneSubheadline) {
-        cloneSubheadline.style.fontSize =
-          `${
-            CONFIG.export.width *
-            CONFIG.export.subheadlineFontRatio
-          }px`;
-
-        cloneSubheadline.style.lineHeight =
-          "1.25";
-      }
-
-
-      dom.exportGhost.innerHTML =
-        "";
-
-
-      Object.assign(
-        dom.exportGhost.style,
-        {
-          width:
-            `${CONFIG.export.width}px`,
-
-          height:
-            `${CONFIG.export.height}px`,
-        }
+      dom.exportGhost.style.setProperty(
+        "position",
+        "fixed",
+        "important"
       );
 
+      dom.exportGhost.style.setProperty(
+        "left",
+        "-10000px",
+        "important"
+      );
+
+      dom.exportGhost.style.setProperty(
+        "top",
+        "0",
+        "important"
+      );
+
+      dom.exportGhost.style.setProperty(
+        "width",
+        "1000px",
+        "important"
+      );
+
+      dom.exportGhost.style.setProperty(
+        "height",
+        "1500px",
+        "important"
+      );
+
+      dom.exportGhost.style.setProperty(
+        "overflow",
+        "hidden",
+        "important"
+      );
+
+      dom.exportGhost.style.setProperty(
+        "pointer-events",
+        "none",
+        "important"
+      );
 
       dom.exportGhost.appendChild(
         clone
       );
 
+
+      /*
+        Let browser calculate the new
+        1000 × 1500 layout before capture.
+      */
+
+      await waitForNextPaint();
+
+
+      /* --------------------------------------------------------------------
+         Wait for cloned image
+         -------------------------------------------------------------------- */
+
+      const exportImage =
+        clone.querySelector(
+          "#pinImage"
+        );
+
+      if (
+        exportImage &&
+        state.imageSrc &&
+        !exportImage.complete
+      ) {
+        await new Promise(function (
+          resolve
+        ) {
+          exportImage.onload =
+            resolve;
+
+          exportImage.onerror =
+            resolve;
+        });
+      }
+
+
+      await waitForNextPaint();
+
+
+      /* --------------------------------------------------------------------
+         Render
+         -------------------------------------------------------------------- */
 
       if (
         typeof html2canvas ===
@@ -1405,68 +1869,153 @@
             scale: 1,
 
             useCORS: true,
-
             allowTaint: true,
 
             backgroundColor: null,
 
             logging: false,
+
+            scrollX: 0,
+            scrollY: 0,
+
+            windowWidth:
+              CONFIG.export.width,
+
+            windowHeight:
+              CONFIG.export.height,
           }
         );
 
 
-      let filename =
-        state.headline.trim() ||
-        "pinforge-pin";
+      /* --------------------------------------------------------------------
+         Safety check
+         -------------------------------------------------------------------- */
+
+      if (
+        canvas.width !==
+          CONFIG.export.width ||
+        canvas.height !==
+          CONFIG.export.height
+      ) {
+        console.warn(
+          "Unexpected export size:",
+          canvas.width,
+          canvas.height
+        );
+      }
 
 
-      filename =
-        filename
-          .toLowerCase()
-          .replace(
-            /[^a-z0-9]+/g,
-            "-"
-          )
-          .replace(
-            /^-+|-+$/g,
-            ""
+      const filename =
+        generateFilename();
+
+
+      /* --------------------------------------------------------------------
+         iPhone / iPad / Safari
+         -------------------------------------------------------------------- */
+
+      if (isIOSDevice()) {
+        /*
+          iOS Safari is unreliable with:
+          <a download="file.png">
+
+          The most reliable browser-only method is
+          opening the generated PNG itself.
+
+          User can then:
+          long press -> Save to Photos
+          or Share -> Save to Files
+        */
+
+        const dataURL =
+          canvas.toDataURL(
+            "image/png",
+            1
           );
 
 
-      filename +=
-        "-1000x1500.png";
+        const imageWindow =
+          window.open("", "_blank");
 
 
-      /*
-        iOS Safari:
-        Blob + Web Share if available.
-        This is much more reliable than
-        anchor.download on iPhone.
-      */
+        if (imageWindow) {
+          imageWindow.document.open();
 
-      const isIOS =
-        /iPad|iPhone|iPod/.test(
-          navigator.userAgent
-        ) ||
-        (
-          navigator.platform ===
-            "MacIntel" &&
-          navigator.maxTouchPoints > 1
-        );
+          imageWindow.document.write(`
+            <!DOCTYPE html>
 
+            <html>
+              <head>
+                <meta charset="UTF-8">
 
-      if (isIOS && canvas.toBlob) {
+                <meta
+                  name="viewport"
+                  content="width=device-width, initial-scale=1, viewport-fit=cover"
+                >
+
+                <title>${filename}</title>
+
+                <style>
+                  * {
+                    box-sizing: border-box;
+                  }
+
+                  html,
+                  body {
+                    margin: 0;
+                    padding: 0;
+                    width: 100%;
+                    min-height: 100%;
+                    background: #111827;
+                  }
+
+                  body {
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: center;
+                  }
+
+                  img {
+                    display: block;
+                    width: 100%;
+                    max-width: 1000px;
+                    height: auto;
+                    margin: 0 auto;
+                  }
+                </style>
+              </head>
+
+              <body>
+                <img
+                  src="${dataURL}"
+                  alt="PinForge Pinterest Pin"
+                >
+              </body>
+            </html>
+          `);
+
+          imageWindow.document.close();
+
+        } else {
+          window.location.href =
+            dataURL;
+        }
+
+      } else {
+
+        /* ------------------------------------------------------------------
+           Desktop / Android
+           ------------------------------------------------------------------ */
 
         const blob =
-          await new Promise(
-            function (resolve) {
-              canvas.toBlob(
-                resolve,
-                "image/png",
-                1
-              );
-            }
-          );
+          await new Promise(function (
+            resolve
+          ) {
+            canvas.toBlob(
+              resolve,
+              "image/png",
+              1
+            );
+          });
 
 
         if (!blob) {
@@ -1476,135 +2025,80 @@
         }
 
 
-        const file =
-          new File(
-            [blob],
-            filename,
-            {
-              type: "image/png",
-            }
+        const blobURL =
+          URL.createObjectURL(
+            blob
           );
 
-
-        /*
-          iPhone Safari:
-          Share sheet allows Save Image
-          or Save to Files.
-        */
-
-        if (
-          navigator.share &&
-          navigator.canShare &&
-          navigator.canShare({
-            files: [file],
-          })
-        ) {
-          await navigator.share({
-            files: [file],
-            title: "PinForge Pin",
-          });
-
-        } else {
-
-          /*
-            Fallback:
-            Open PNG directly.
-            User can long-press → Save Image.
-          */
-
-          const blobUrl =
-            URL.createObjectURL(
-              blob
-            );
-
-
-          window.open(
-            blobUrl,
-            "_blank"
-          );
-
-
-          setTimeout(
-            function () {
-              URL.revokeObjectURL(
-                blobUrl
-              );
-            },
-            60000
-          );
-        }
-
-      } else {
-
-        /*
-          Desktop / Android
-        */
 
         const link =
           document.createElement(
             "a"
           );
 
+        link.href =
+          blobURL;
 
         link.download =
           filename;
-
-
-        link.href =
-          canvas.toDataURL(
-            "image/png"
-          );
-
 
         document.body.appendChild(
           link
         );
 
-
         link.click();
 
-
         link.remove();
+
+
+        setTimeout(function () {
+          URL.revokeObjectURL(
+            blobURL
+          );
+        }, 5000);
       }
 
+
+      /* --------------------------------------------------------------------
+         Cleanup
+         -------------------------------------------------------------------- */
 
       dom.exportGhost.innerHTML =
         "";
 
+
+      /* --------------------------------------------------------------------
+         Success UI
+         -------------------------------------------------------------------- */
 
       if (dom.downloadBtn) {
         dom.downloadBtn.classList.add(
           "pf-success"
         );
 
-
         dom.downloadBtn.innerHTML =
           `${ICONS.check}<span>Pin Ready!</span>`;
       }
 
 
-      setTimeout(
-        function () {
-          if (dom.downloadBtn) {
-            dom.downloadBtn.disabled =
-              false;
-
-
-            dom.downloadBtn.classList.remove(
-              "pf-success"
-            );
-
-
-            dom.downloadBtn.innerHTML =
-              `${ICONS.download}<span>Download PNG</span>`;
-          }
-
-
-          state.isExporting =
+      setTimeout(function () {
+        if (dom.downloadBtn) {
+          dom.downloadBtn.disabled =
             false;
-        },
-        CONFIG.successMessageDurationMs
-      );
+
+          dom.downloadBtn.classList.remove(
+            "opacity-90",
+            "pf-success"
+          );
+
+          dom.downloadBtn.innerHTML =
+            `${ICONS.download}<span>Download PNG</span>`;
+        }
+
+        state.isExporting =
+          false;
+
+      }, CONFIG.successMessageDurationMs);
 
 
     } catch (error) {
@@ -1623,6 +2117,10 @@
         dom.downloadBtn.disabled =
           false;
 
+        dom.downloadBtn.classList.remove(
+          "opacity-90",
+          "pf-success"
+        );
 
         dom.downloadBtn.innerHTML =
           `${ICONS.download}<span>Export Failed — Retry</span>`;
@@ -1636,7 +2134,9 @@
 
 
   function setupExporter() {
-    dom.downloadBtn?.addEventListener(
+    if (!dom.downloadBtn) return;
+
+    dom.downloadBtn.addEventListener(
       "click",
       exportPin
     );
@@ -1644,84 +2144,115 @@
 
 
   /* ==========================================================================
-     HEADER
+     19. HEADER EFFECT
      ========================================================================== */
 
   function setupChromeEffects() {
+    if (!dom.siteHeader) return;
+
     window.addEventListener(
       "scroll",
       function () {
-        dom.siteHeader?.classList.toggle(
+        dom.siteHeader.classList.toggle(
           "is-scrolled",
+
           window.scrollY >
-            CONFIG.headerScrollThresholdPx
+            CONFIG
+              .headerScrollThresholdPx
         );
       },
+
       { passive: true }
     );
   }
 
 
   /* ==========================================================================
-     INITIAL STATE
+     20. INITIAL STATE
      ========================================================================== */
 
   function setInitialState() {
 
+    /* Image */
+
     resetImagePosition();
 
 
-    setOverlayStyle(
-      "bottom"
+    /* Text */
+
+    state.headline =
+      dom.headlineInput
+        ? dom.headlineInput.value
+        : "";
+
+    state.subheadline =
+      dom.subheadlineInput
+        ? dom.subheadlineInput.value
+        : "";
+
+    updateHeadline();
+    updateSubheadline();
+
+
+    /* Counters */
+
+    if (dom.headlineCount) {
+      dom.headlineCount.textContent =
+        `${state.headline.length}/60`;
+    }
+
+    if (dom.subheadlineCount) {
+      dom.subheadlineCount.textContent =
+        `${state.subheadline.length}/80`;
+    }
+
+
+    /* Overlay */
+
+    setOverlayStyle("bottom");
+
+
+    /* Font */
+
+    applyFont(
+      "league-spartan"
     );
 
 
-    state.font =
-      "league-spartan";
-
-
-    if (dom.pinHeadline) {
-      dom.pinHeadline.style.fontFamily =
-        FONT_FAMILIES[
-          "league-spartan"
-        ];
-    }
-
+    /* Headline color */
 
     applyHeadlineColor(
       "#ffffff"
     );
 
 
-    state.ctaType =
-      "SHOP ON ETSY";
+    /* CTA */
 
+    state.ctaType =
+      CONFIG.cta.defaultValue;
+
+    state.customCta = "";
 
     if (dom.ctaSelect) {
       dom.ctaSelect.value =
-        "SHOP ON ETSY";
+        CONFIG.cta.defaultValue;
     }
 
+    if (dom.ctaCustomInput) {
+      dom.ctaCustomInput.classList.add(
+        "hidden"
+      );
+    }
 
     updateCtaDisplay();
 
 
-    setCustomizePanel(
-      false
-    );
+    /* Customize starts closed */
+
+    setCustomizePanel(false);
 
 
-    if (dom.headlineCount) {
-      dom.headlineCount.textContent =
-        "0/60";
-    }
-
-
-    if (dom.subheadlineCount) {
-      dom.subheadlineCount.textContent =
-        "0/80";
-    }
-
+    /* Pill */
 
     setTimeout(
       updatePillPosition,
@@ -1731,11 +2262,10 @@
 
 
   /* ==========================================================================
-     INIT
+     21. INIT
      ========================================================================== */
 
   function init() {
-
     setupUpload();
 
     setupImagePosition();
@@ -1756,20 +2286,11 @@
 
     setupChromeEffects();
 
-
     setInitialState();
 
 
-    /*
-      Create floating preview LAST,
-      after initial card state is ready.
-    */
-
-    setupFloatingPreview();
-
-
     console.log(
-      "PinForge v0.2.2 initialized ✨"
+      "PinForge v0.2 initialized ✨"
     );
   }
 
@@ -1782,6 +2303,7 @@
       "DOMContentLoaded",
       init
     );
+
   } else {
     init();
   }
