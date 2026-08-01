@@ -1,11 +1,6 @@
 /* ==========================================================================
-   PinForge v0.2 — app.js
-   Stable Build
-   - Mobile floating preview
-   - Position X / Y
-   - Zoom
-   - Correct image export
-   - CTA drawn directly onto export canvas
+   PinForge v0.5 — app.js
+   Stable Floating Preview + Image Position + Clean Export + Canvas CTA
    ========================================================================== */
 
 (function () {
@@ -22,10 +17,8 @@
     zoomDefault: 100,
     positionDefault: 50,
 
-    imageMoveRange: 10,
-
     mobileBreakpoint: 1024,
-    mobileFloatingTop: 72,
+    mobileFloatingTop: 76,
 
     successDuration: 1600,
   };
@@ -91,7 +84,7 @@
     pinTextWrap: document.getElementById("pinTextWrap"),
     pinScrim: document.getElementById("pinScrim"),
 
-    // Image adjustments
+    // Image controls
     zoomSlider: document.getElementById("zoomSlider"),
     zoomValue: document.getElementById("zoomValue"),
     posXSlider: document.getElementById("posXSlider"),
@@ -137,35 +130,20 @@
 
 
   /* ==========================================================================
-     5. IMAGE TRANSFORM
+     5. IMAGE POSITION / ZOOM
      ========================================================================== */
-
-  function getImageTransform() {
-    const scale = state.zoom / 100;
-
-    const x =
-      ((state.posX - 50) / 50) *
-      CONFIG.imageMoveRange;
-
-    const y =
-      ((state.posY - 50) / 50) *
-      CONFIG.imageMoveRange;
-
-    return `translate3d(${x}%, ${y}%, 0) scale(${scale})`;
-  }
-
 
   function applyImageTransform(imageElement = dom.pinImage) {
     if (!imageElement) return;
 
+    imageElement.style.objectPosition =
+      `${state.posX}% ${state.posY}%`;
+
     imageElement.style.transform =
-      getImageTransform();
+      `scale(${state.zoom / 100})`;
 
     imageElement.style.transformOrigin =
-      "center center";
-
-    imageElement.style.objectPosition =
-      "50% 50%";
+      `${state.posX}% ${state.posY}%`;
   }
 
 
@@ -175,8 +153,7 @@
     }
 
     if (dom.zoomValue) {
-      dom.zoomValue.textContent =
-        `${state.zoom}%`;
+      dom.zoomValue.textContent = `${state.zoom}%`;
     }
 
     if (dom.posXSlider) {
@@ -188,6 +165,7 @@
     }
 
     applyImageTransform();
+    syncFloatingPreview();
   }
 
 
@@ -232,20 +210,14 @@
         dom.pinImage.classList.add("pf-animate-in");
       }
 
-      if (dom.pinPlaceholder) {
-        dom.pinPlaceholder.classList.add("hidden");
-      }
-
-      if (dom.removeImageBtn) {
-        dom.removeImageBtn.classList.remove("hidden");
-      }
+      dom.pinPlaceholder?.classList.add("hidden");
+      dom.removeImageBtn?.classList.remove("hidden");
 
       resetImagePosition();
+      syncFloatingPreview();
 
       setTimeout(function () {
-        dom.pinImage?.classList.remove(
-          "pf-animate-in"
-        );
+        dom.pinImage?.classList.remove("pf-animate-in");
       }, 500);
     };
 
@@ -261,94 +233,65 @@
       dom.pinImage.classList.add("hidden");
     }
 
-    if (dom.pinPlaceholder) {
-      dom.pinPlaceholder.classList.remove("hidden");
-    }
-
-    if (dom.removeImageBtn) {
-      dom.removeImageBtn.classList.add("hidden");
-    }
+    dom.pinPlaceholder?.classList.remove("hidden");
+    dom.removeImageBtn?.classList.add("hidden");
 
     if (dom.fileInput) {
       dom.fileInput.value = "";
     }
 
     resetImagePosition();
+    syncFloatingPreview();
   }
 
 
   function setupUpload() {
-    dom.fileInput?.addEventListener(
-      "change",
-      function (event) {
-        const file =
-          event.target.files?.[0];
+    dom.fileInput?.addEventListener("change", function (event) {
+      const file = event.target.files?.[0];
+
+      if (file) {
+        handleFile(file);
+      }
+    });
+
+
+    if (dom.dropzone) {
+      ["dragenter", "dragover"].forEach(function (eventName) {
+        dom.dropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          dom.dropzone.classList.add("is-dragover");
+        });
+      });
+
+
+      ["dragleave", "drop"].forEach(function (eventName) {
+        dom.dropzone.addEventListener(eventName, function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          dom.dropzone.classList.remove("is-dragover");
+        });
+      });
+
+
+      dom.dropzone.addEventListener("drop", function (event) {
+        const file = event.dataTransfer?.files?.[0];
 
         if (file) {
           handleFile(file);
         }
-      }
-    );
-
-
-    if (dom.dropzone) {
-      ["dragenter", "dragover"].forEach(
-        function (eventName) {
-          dom.dropzone.addEventListener(
-            eventName,
-            function (event) {
-              event.preventDefault();
-              event.stopPropagation();
-
-              dom.dropzone.classList.add(
-                "is-dragover"
-              );
-            }
-          );
-        }
-      );
-
-
-      ["dragleave", "drop"].forEach(
-        function (eventName) {
-          dom.dropzone.addEventListener(
-            eventName,
-            function (event) {
-              event.preventDefault();
-              event.stopPropagation();
-
-              dom.dropzone.classList.remove(
-                "is-dragover"
-              );
-            }
-          );
-        }
-      );
-
-
-      dom.dropzone.addEventListener(
-        "drop",
-        function (event) {
-          const file =
-            event.dataTransfer?.files?.[0];
-
-          if (file) {
-            handleFile(file);
-          }
-        }
-      );
+      });
     }
 
 
-    dom.removeImageBtn?.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-        event.stopPropagation();
+    dom.removeImageBtn?.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
 
-        removeImage();
-      }
-    );
+      removeImage();
+    });
   }
 
 
@@ -357,52 +300,39 @@
      ========================================================================== */
 
   function setupImageControls() {
-    dom.zoomSlider?.addEventListener(
-      "input",
-      function (event) {
-        state.zoom =
-          Number(event.target.value);
+    dom.zoomSlider?.addEventListener("input", function (event) {
+      state.zoom = Number(event.target.value);
 
-        if (dom.zoomValue) {
-          dom.zoomValue.textContent =
-            `${state.zoom}%`;
-        }
-
-        applyImageTransform();
+      if (dom.zoomValue) {
+        dom.zoomValue.textContent = `${state.zoom}%`;
       }
-    );
+
+      applyImageTransform();
+      syncFloatingPreview();
+    });
 
 
-    dom.posXSlider?.addEventListener(
-      "input",
-      function (event) {
-        state.posX =
-          Number(event.target.value);
+    dom.posXSlider?.addEventListener("input", function (event) {
+      state.posX = Number(event.target.value);
 
-        applyImageTransform();
-      }
-    );
+      applyImageTransform();
+      syncFloatingPreview();
+    });
 
 
-    dom.posYSlider?.addEventListener(
-      "input",
-      function (event) {
-        state.posY =
-          Number(event.target.value);
+    dom.posYSlider?.addEventListener("input", function (event) {
+      state.posY = Number(event.target.value);
 
-        applyImageTransform();
-      }
-    );
+      applyImageTransform();
+      syncFloatingPreview();
+    });
 
 
-    dom.resetPositionBtn?.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
+    dom.resetPositionBtn?.addEventListener("click", function (event) {
+      event.preventDefault();
 
-        resetImagePosition();
-      }
-    );
+      resetImagePosition();
+    });
   }
 
 
@@ -429,41 +359,37 @@
 
 
   function setupText() {
-    dom.headlineInput?.addEventListener(
-      "input",
-      function (event) {
-        state.headline =
-          event.target.value;
+    dom.headlineInput?.addEventListener("input", function (event) {
+      state.headline = event.target.value;
 
-        renderHeadline();
+      renderHeadline();
 
-        if (dom.headlineCount) {
-          dom.headlineCount.textContent =
-            `${state.headline.length}/60`;
-        }
+      if (dom.headlineCount) {
+        dom.headlineCount.textContent =
+          `${state.headline.length}/60`;
       }
-    );
+
+      syncFloatingPreview();
+    });
 
 
-    dom.subheadlineInput?.addEventListener(
-      "input",
-      function (event) {
-        state.subheadline =
-          event.target.value;
+    dom.subheadlineInput?.addEventListener("input", function (event) {
+      state.subheadline = event.target.value;
 
-        renderSubheadline();
+      renderSubheadline();
 
-        if (dom.subheadlineCount) {
-          dom.subheadlineCount.textContent =
-            `${state.subheadline.length}/80`;
-        }
+      if (dom.subheadlineCount) {
+        dom.subheadlineCount.textContent =
+          `${state.subheadline.length}/80`;
       }
-    );
+
+      syncFloatingPreview();
+    });
   }
 
 
   /* ==========================================================================
-     9. OVERLAY
+     9. OVERLAY POSITION
      ========================================================================== */
 
   const OVERLAY_CLASSES = {
@@ -494,12 +420,7 @@
 
 
   function updateStylePill() {
-    if (
-      !dom.styleToggle ||
-      !dom.styleTogglePill
-    ) {
-      return;
-    }
+    if (!dom.styleToggle || !dom.styleTogglePill) return;
 
     const active =
       dom.styleToggle.querySelector(
@@ -518,11 +439,7 @@
       `${activeRect.width}px`;
 
     dom.styleTogglePill.style.transform =
-      `translateX(${
-        activeRect.left -
-        parentRect.left -
-        4
-      }px)`;
+      `translateX(${activeRect.left - parentRect.left - 4}px)`;
   }
 
 
@@ -550,28 +467,22 @@
         );
       });
 
-    requestAnimationFrame(
-      updateStylePill
-    );
+    requestAnimationFrame(updateStylePill);
+
+    syncFloatingPreview();
   }
 
 
   function setupOverlay() {
-    dom.styleToggle?.addEventListener(
-      "click",
-      function (event) {
-        const button =
-          event.target.closest(
-            ".style-btn"
-          );
+    dom.styleToggle?.addEventListener("click", function (event) {
+      const button =
+        event.target.closest(".style-btn");
 
-        if (!button) return;
+      if (!button) return;
 
-        setOverlayStyle(
-          button.dataset.style
-        );
-      }
-    );
+      setOverlayStyle(button.dataset.style);
+    });
+
 
     window.addEventListener(
       "resize",
@@ -581,7 +492,7 @@
 
 
   /* ==========================================================================
-     10. CUSTOMIZE PANEL
+     10. CUSTOMIZE ACCORDION
      ========================================================================== */
 
   function setCustomizeOpen(open) {
@@ -607,14 +518,11 @@
   function setupCustomize() {
     setCustomizeOpen(false);
 
-    dom.customizeToggleBtn?.addEventListener(
-      "click",
-      function () {
-        setCustomizeOpen(
-          !state.isCustomizingOpen
-        );
-      }
-    );
+    dom.customizeToggleBtn?.addEventListener("click", function () {
+      setCustomizeOpen(
+        !state.isCustomizingOpen
+      );
+    });
   }
 
 
@@ -632,37 +540,31 @@
 
 
   function setupFonts() {
-    dom.fontSelector?.addEventListener(
-      "click",
-      function (event) {
-        const chip =
-          event.target.closest(
-            ".font-chip"
+    dom.fontSelector?.addEventListener("click", function (event) {
+      const chip =
+        event.target.closest(".font-chip");
+
+      if (!chip) return;
+
+      const font =
+        chip.dataset.font;
+
+      if (!FONT_FAMILIES[font]) return;
+
+      state.font = font;
+
+      dom.fontSelector
+        .querySelectorAll(".font-chip")
+        .forEach(function (item) {
+          item.classList.toggle(
+            "is-active",
+            item === chip
           );
+        });
 
-        if (!chip) return;
-
-        const font =
-          chip.dataset.font;
-
-        if (!FONT_FAMILIES[font]) {
-          return;
-        }
-
-        state.font = font;
-
-        dom.fontSelector
-          .querySelectorAll(".font-chip")
-          .forEach(function (item) {
-            item.classList.toggle(
-              "is-active",
-              item === chip
-            );
-          });
-
-        applyFont();
-      }
-    );
+      applyFont();
+      syncFloatingPreview();
+    });
   }
 
 
@@ -674,17 +576,14 @@
     state.color = color;
 
     if (dom.pinHeadline) {
-      dom.pinHeadline.style.color =
-        color;
+      dom.pinHeadline.style.color = color;
     }
   }
 
 
   function setActiveColor(target) {
     dom.colorSelector
-      ?.querySelectorAll(
-        ".color-swatch"
-      )
+      ?.querySelectorAll(".color-swatch")
       .forEach(function (item) {
         item.classList.toggle(
           "is-active",
@@ -695,43 +594,34 @@
 
 
   function setupColors() {
-    dom.colorSelector?.addEventListener(
-      "click",
-      function (event) {
-        const swatch =
-          event.target.closest(
-            ".color-swatch:not(.color-swatch--custom)"
-          );
-
-        if (!swatch) return;
-
-        const color =
-          swatch.dataset.color;
-
-        if (!color) return;
-
-        applyColor(color);
-        setActiveColor(swatch);
-      }
-    );
-
-
-    dom.customColorInput?.addEventListener(
-      "input",
-      function (event) {
-        applyColor(
-          event.target.value
+    dom.colorSelector?.addEventListener("click", function (event) {
+      const swatch =
+        event.target.closest(
+          ".color-swatch:not(.color-swatch--custom)"
         );
 
-        if (
-          dom.customColorSwatch
-        ) {
-          setActiveColor(
-            dom.customColorSwatch
-          );
-        }
+      if (!swatch) return;
+
+      const color =
+        swatch.dataset.color;
+
+      if (!color) return;
+
+      applyColor(color);
+      setActiveColor(swatch);
+      syncFloatingPreview();
+    });
+
+
+    dom.customColorInput?.addEventListener("input", function (event) {
+      applyColor(event.target.value);
+
+      if (dom.customColorSwatch) {
+        setActiveColor(dom.customColorSwatch);
       }
-    );
+
+      syncFloatingPreview();
+    });
   }
 
 
@@ -740,10 +630,6 @@
      ========================================================================== */
 
   function getCtaText() {
-    if (state.ctaType === "none") {
-      return "";
-    }
-
     if (state.ctaType === "custom") {
       return (
         state.customCta.trim() ||
@@ -756,88 +642,171 @@
 
 
   function renderCTA() {
-    if (
-      !dom.pinCtaWrap ||
-      !dom.pinCtaLabel
-    ) {
+    if (!dom.pinCtaWrap || !dom.pinCtaLabel) return;
+
+    if (state.ctaType === "none") {
+      dom.pinCtaWrap.classList.add("hidden");
       return;
     }
 
-    const text = getCtaText();
-
-    if (!text) {
-      dom.pinCtaWrap.classList.add(
-        "hidden"
-      );
-
-      return;
-    }
-
-    dom.pinCtaWrap.classList.remove(
-      "hidden"
-    );
+    dom.pinCtaWrap.classList.remove("hidden");
 
     dom.pinCtaLabel.textContent =
-      text;
+      getCtaText();
   }
 
 
   function setupCTA() {
-    dom.ctaSelect?.addEventListener(
-      "change",
-      function (event) {
-        state.ctaType =
-          event.target.value;
+    dom.ctaSelect?.addEventListener("change", function (event) {
+      state.ctaType = event.target.value;
 
-        if (dom.ctaCustomInput) {
-          dom.ctaCustomInput.classList.toggle(
-            "hidden",
-            state.ctaType !==
-              "custom"
-          );
-        }
-
-        renderCTA();
+      if (dom.ctaCustomInput) {
+        dom.ctaCustomInput.classList.toggle(
+          "hidden",
+          state.ctaType !== "custom"
+        );
       }
-    );
+
+      renderCTA();
+      syncFloatingPreview();
+    });
 
 
-    dom.ctaCustomInput?.addEventListener(
-      "input",
-      function (event) {
-        state.customCta =
-          event.target.value;
+    dom.ctaCustomInput?.addEventListener("input", function (event) {
+      state.customCta =
+        event.target.value;
 
-        renderCTA();
-      }
-    );
+      renderCTA();
+      syncFloatingPreview();
+    });
   }
 
 
   /* ==========================================================================
-     14. MOBILE FLOATING PREVIEW
+     14. FLOATING PREVIEW MIRROR
      ========================================================================== */
 
+  let floatingHost = null;
   let floatingTicking = false;
 
 
-  function updateMobileFloatingPreview() {
+  function createFloatingPreview() {
+    if (floatingHost) return floatingHost;
+
+    floatingHost =
+      document.createElement("div");
+
+    floatingHost.id =
+      "pfFloatingPreview";
+
+    floatingHost.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+    document.body.appendChild(
+      floatingHost
+    );
+
+    return floatingHost;
+  }
+
+
+  function makePreviewClone() {
+    if (!dom.pinCard) return null;
+
+    const clone =
+      dom.pinCard.cloneNode(true);
+
+    clone.id =
+      "pfFloatingCard";
+
+    clone.classList.remove(
+      "group-hover:shadow-cardHover",
+      "group-hover:-translate-y-1"
+    );
+
+    clone.style.transform = "none";
+
+    return clone;
+  }
+
+
+  function syncFloatingPreview() {
+    if (
+      window.innerWidth >=
+      CONFIG.mobileBreakpoint
+    ) {
+      return;
+    }
+
+    const host =
+      createFloatingPreview();
+
+    const clone =
+      makePreviewClone();
+
+    if (!clone) return;
+
+
+    const cloneImage =
+      clone.querySelector("#pinImage");
+
+    if (cloneImage) {
+      cloneImage.style.objectPosition =
+        `${state.posX}% ${state.posY}%`;
+
+      cloneImage.style.transform =
+        `scale(${state.zoom / 100})`;
+
+      cloneImage.style.transformOrigin =
+        `${state.posX}% ${state.posY}%`;
+    }
+
+
+    const cloneCtaWrap =
+      clone.querySelector("#pinCtaWrap");
+
+    const cloneCtaLabel =
+      clone.querySelector("#pinCtaLabel");
+
+    if (cloneCtaWrap) {
+      cloneCtaWrap.classList.toggle(
+        "hidden",
+        state.ctaType === "none"
+      );
+    }
+
+    if (
+      cloneCtaLabel &&
+      state.ctaType !== "none"
+    ) {
+      cloneCtaLabel.textContent =
+        getCtaText();
+    }
+
+
+    host.innerHTML = "";
+    host.appendChild(clone);
+  }
+
+
+  function updateFloatingVisibility() {
     floatingTicking = false;
-
-    if (!dom.pinCard) return;
-
 
     if (
       window.innerWidth >=
       CONFIG.mobileBreakpoint
     ) {
-      dom.pinCard.classList.remove(
-        "pf-mobile-floating"
+      floatingHost?.classList.remove(
+        "is-visible"
       );
 
       return;
     }
 
+    const host =
+      createFloatingPreview();
 
     const editorSection =
       document.querySelector(
@@ -846,20 +815,17 @@
 
     if (!editorSection) return;
 
-
-    const editorRect =
+    const rect =
       editorSection.getBoundingClientRect();
 
+    const shouldShow =
+      rect.top <
+        CONFIG.mobileFloatingTop + 40 &&
+      rect.bottom > 80;
 
-    const shouldFloat =
-      editorRect.top <
-        CONFIG.mobileFloatingTop &&
-      editorRect.bottom > 180;
-
-
-    dom.pinCard.classList.toggle(
-      "pf-mobile-floating",
-      shouldFloat
+    host.classList.toggle(
+      "is-visible",
+      shouldShow
     );
   }
 
@@ -870,12 +836,14 @@
     floatingTicking = true;
 
     requestAnimationFrame(
-      updateMobileFloatingPreview
+      updateFloatingVisibility
     );
   }
 
 
   function setupMobilePreview() {
+    createFloatingPreview();
+
     window.addEventListener(
       "scroll",
       requestFloatingUpdate,
@@ -884,7 +852,10 @@
 
     window.addEventListener(
       "resize",
-      requestFloatingUpdate,
+      function () {
+        syncFloatingPreview();
+        requestFloatingUpdate();
+      },
       { passive: true }
     );
 
@@ -898,7 +869,7 @@
     }
 
 
-    updateMobileFloatingPreview();
+    requestFloatingUpdate();
   }
 
 
@@ -954,20 +925,11 @@
         stroke="white"
         stroke-width="2"
       >
-        <circle
-          cx="12"
-          cy="12"
-          r="9"
-          stroke-opacity="0.3"
-        />
-        <path
-          d="M21 12a9 9 0 0 0-9-9"
-        />
+        <circle cx="12" cy="12" r="9" stroke-opacity="0.3" />
+        <path d="M21 12a9 9 0 0 0-9-9" />
       </svg>
 
-      <span>
-        Generating 1000×1500...
-      </span>
+      <span>Generating 1000×1500...</span>
     `;
   }
 
@@ -1027,42 +989,308 @@
   }
 
 
-  async function waitForCloneImage(
-    clone
-  ) {
-    const image =
-      clone.querySelector(
-        "#pinImage"
-      );
+  /* ==========================================================================
+     17. EXPORT IMAGE LAYER
+     ========================================================================== */
 
-    if (
-      !image ||
-      !image.src
-    ) {
+  function buildExportImageLayer(clone) {
+    const imageWrap =
+      clone.querySelector("#pinImageWrap");
+
+    const originalCloneImage =
+      clone.querySelector("#pinImage");
+
+    if (!imageWrap) return;
+
+
+    if (originalCloneImage) {
+      originalCloneImage.style.display =
+        "none";
+    }
+
+
+    if (!state.imageSrc) {
       return;
     }
 
 
-    if (image.complete) {
-      try {
-        await image.decode();
-      } catch (_) {}
+    const placeholder =
+      clone.querySelector("#pinPlaceholder");
 
-      return;
+    if (placeholder) {
+      placeholder.style.display =
+        "none";
     }
 
 
-    await new Promise(
-      function (resolve) {
-        image.onload = resolve;
-        image.onerror = resolve;
-      }
+    const imageLayer =
+      document.createElement("div");
+
+    imageLayer.className =
+      "pf-export-image-layer";
+
+    imageLayer.style.position =
+      "absolute";
+
+    imageLayer.style.inset =
+      "0";
+
+    imageLayer.style.width =
+      "100%";
+
+    imageLayer.style.height =
+      "100%";
+
+    imageLayer.style.backgroundImage =
+      `url("${state.imageSrc}")`;
+
+    imageLayer.style.backgroundRepeat =
+      "no-repeat";
+
+    imageLayer.style.backgroundPosition =
+      `${state.posX}% ${state.posY}%`;
+
+    imageLayer.style.backgroundSize =
+      "cover";
+
+    imageLayer.style.transform =
+      `scale(${state.zoom / 100})`;
+
+    imageLayer.style.transformOrigin =
+      `${state.posX}% ${state.posY}%`;
+
+    imageLayer.style.zIndex =
+      "1";
+
+
+    imageWrap.style.position =
+      "absolute";
+
+    imageWrap.style.inset =
+      "0";
+
+    imageWrap.style.width =
+      "100%";
+
+    imageWrap.style.height =
+      "100%";
+
+    imageWrap.style.overflow =
+      "hidden";
+
+
+    imageWrap.appendChild(
+      imageLayer
     );
   }
 
 
   /* ==========================================================================
-     17. CANVAS CTA
+     18. EXPORT CARD
+
+     IMPORTANT:
+     CTA is intentionally hidden here.
+
+     We draw it directly onto the final canvas AFTER html2canvas renders.
+     ========================================================================== */
+
+  function buildExportCard() {
+    const clone =
+      dom.pinCard.cloneNode(true);
+
+
+    clone.id =
+      "pinCardExport";
+
+    clone.className =
+      "relative overflow-hidden bg-white";
+
+
+    clone.style.position =
+      "relative";
+
+    clone.style.width =
+      `${CONFIG.exportWidth}px`;
+
+    clone.style.height =
+      `${CONFIG.exportHeight}px`;
+
+    clone.style.minWidth =
+      `${CONFIG.exportWidth}px`;
+
+    clone.style.maxWidth =
+      `${CONFIG.exportWidth}px`;
+
+    clone.style.minHeight =
+      `${CONFIG.exportHeight}px`;
+
+    clone.style.maxHeight =
+      `${CONFIG.exportHeight}px`;
+
+    clone.style.aspectRatio =
+      "auto";
+
+    clone.style.margin =
+      "0";
+
+    clone.style.padding =
+      "0";
+
+    clone.style.border =
+      "0";
+
+    clone.style.borderRadius =
+      "0";
+
+    clone.style.boxShadow =
+      "none";
+
+    clone.style.transform =
+      "none";
+
+    clone.style.overflow =
+      "hidden";
+
+
+    /*
+      Product image.
+    */
+
+    buildExportImageLayer(
+      clone
+    );
+
+
+    /*
+      Scrim.
+    */
+
+    const scrim =
+      clone.querySelector("#pinScrim");
+
+    if (scrim) {
+      scrim.style.zIndex =
+        "5";
+    }
+
+
+    /*
+      Text wrapper.
+    */
+
+    const textWrap =
+      clone.querySelector("#pinTextWrap");
+
+    if (textWrap) {
+      textWrap.style.zIndex =
+        "10";
+    }
+
+
+    /*
+      Headline.
+    */
+
+    const headline =
+      clone.querySelector("#pinHeadline");
+
+    if (headline) {
+      headline.textContent =
+        state.headline.trim() ||
+        "Your Headline Here";
+
+      headline.style.fontFamily =
+        FONT_FAMILIES[state.font] ||
+        FONT_FAMILIES["league-spartan"];
+
+      headline.style.fontSize =
+        "72px";
+
+      headline.style.fontWeight =
+        "700";
+
+      headline.style.lineHeight =
+        "1.08";
+
+      headline.style.color =
+        state.color;
+
+      headline.style.webkitTextFillColor =
+        state.color;
+
+      headline.style.opacity =
+        "1";
+    }
+
+
+    /*
+      Subheadline.
+    */
+
+    const subheadline =
+      clone.querySelector(
+        "#pinSubheadline"
+      );
+
+    if (subheadline) {
+      subheadline.textContent =
+        state.subheadline.trim() ||
+        "Add a subheadline for extra detail";
+
+      subheadline.style.fontFamily =
+        "'Inter', Arial, sans-serif";
+
+      subheadline.style.fontSize =
+        "34px";
+
+      subheadline.style.fontWeight =
+        "500";
+
+      subheadline.style.lineHeight =
+        "1.25";
+
+      subheadline.style.color =
+        "#FFFFFF";
+
+      subheadline.style.webkitTextFillColor =
+        "#FFFFFF";
+
+      subheadline.style.opacity =
+        "0.90";
+    }
+
+
+    /*
+      Hide original CTA from html2canvas.
+
+      Canvas draws a fresh one later.
+    */
+
+    const ctaWrap =
+      clone.querySelector("#pinCtaWrap");
+
+    if (ctaWrap) {
+      ctaWrap.style.visibility =
+        "hidden";
+    }
+
+
+    return clone;
+  }
+
+
+  /* ==========================================================================
+     19. CANVAS CTA
+
+     This is the CTA fix.
+
+     html2canvas does NOT render the badge text anymore.
+     We draw:
+     - white pill
+     - gold dot
+     - dark text
+
+     directly onto the finished canvas.
      ========================================================================== */
 
   function roundedRect(
@@ -1139,15 +1367,58 @@
   }
 
 
-  function drawCanvasCTA(
+  function getCanvasCTAPosition(
     canvas,
-    clone,
-    originalCtaRect
+    badgeWidth,
+    badgeHeight
   ) {
-    const text =
-      getCtaText();
+    const paddingX =
+      60;
 
-    if (!text) return;
+    /*
+      Match the general position of the HTML CTA
+      depending on overlay style.
+    */
+
+    if (state.style === "top") {
+      return {
+        x: paddingX,
+        y: 255,
+      };
+    }
+
+
+    if (state.style === "center") {
+      return {
+        x:
+          (canvas.width - badgeWidth) / 2,
+
+        y:
+          canvas.height / 2 + 150,
+      };
+    }
+
+
+    /*
+      Bottom overlay.
+    */
+
+    return {
+      x: paddingX,
+      y:
+        canvas.height -
+        badgeHeight -
+        70,
+    };
+  }
+
+
+  function drawCanvasCTA(canvas) {
+    if (
+      state.ctaType === "none"
+    ) {
+      return;
+    }
 
 
     const ctx =
@@ -1156,117 +1427,125 @@
     if (!ctx) return;
 
 
-    /*
-      CTA position is calculated from its
-      actual position in the 1000x1500 export clone.
+    const text =
+      getCtaText();
 
-      That means Bottom / Center / Top all stay aligned
-      with the text overlay automatically.
+
+    /*
+      CTA typography.
     */
 
-    const cloneRect =
-      clone.getBoundingClientRect();
+    const fontSize =
+      24;
 
-
-    let x = 60;
-    let y = 1200;
-
-
-    if (originalCtaRect) {
-      x =
-        originalCtaRect.left -
-        cloneRect.left;
-
-      y =
-        originalCtaRect.top -
-        cloneRect.top;
-    }
-
+    const fontWeight =
+      700;
 
     ctx.save();
 
-
-    /*
-      Badge typography.
-    */
-
-    const fontSize = 24;
-
     ctx.font =
-      `700 ${fontSize}px Inter, Arial, sans-serif`;
+      `${fontWeight} ${fontSize}px Inter, Arial, sans-serif`;
 
     ctx.textBaseline =
       "middle";
 
 
-    const metrics =
-      ctx.measureText(text);
-
+    /*
+      Dimensions.
+    */
 
     const textWidth =
-      metrics.width;
+      ctx.measureText(text).width;
+
+    const dotSize =
+      12;
+
+    const gap =
+      12;
+
+    const paddingLeft =
+      26;
+
+    const paddingRight =
+      26;
+
+    const badgeHeight =
+      56;
+
+    const badgeWidth =
+      Math.ceil(
+        paddingLeft +
+        dotSize +
+        gap +
+        textWidth +
+        paddingRight
+      );
+
+
+    const position =
+      getCanvasCTAPosition(
+        canvas,
+        badgeWidth,
+        badgeHeight
+      );
+
+
+    const x =
+      position.x;
+
+    const y =
+      position.y;
 
 
     /*
-      Badge dimensions.
+      Soft shadow.
     */
 
-    const height = 58;
+    ctx.save();
 
-    const paddingLeft = 24;
-    const paddingRight = 26;
+    ctx.shadowColor =
+      "rgba(0,0,0,0.12)";
 
-    const dotSize = 10;
-    const dotGap = 14;
+    ctx.shadowBlur =
+      12;
 
-    const width =
-      paddingLeft +
-      dotSize +
-      dotGap +
-      textWidth +
-      paddingRight;
+    ctx.shadowOffsetY =
+      3;
+
+    ctx.fillStyle =
+      "#FFFFFF";
+
+    roundedRect(
+      ctx,
+      x,
+      y,
+      badgeWidth,
+      badgeHeight,
+      badgeHeight / 2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
 
 
     /*
       White badge.
     */
 
-    ctx.shadowColor =
-      "rgba(0,0,0,0.14)";
-
-    ctx.shadowBlur = 12;
-
-    ctx.shadowOffsetY = 4;
-
-
     ctx.fillStyle =
-      "rgba(255,255,255,0.97)";
-
+      "#FFFFFF";
 
     roundedRect(
       ctx,
       x,
       y,
-      width,
-      height,
-      height / 2
+      badgeWidth,
+      badgeHeight,
+      badgeHeight / 2
     );
 
-
     ctx.fill();
-
-
-    /*
-      Remove shadow before drawing
-      dot and text.
-    */
-
-    ctx.shadowColor =
-      "transparent";
-
-    ctx.shadowBlur = 0;
-
-    ctx.shadowOffsetY = 0;
 
 
     /*
@@ -1278,16 +1557,15 @@
       paddingLeft +
       dotSize / 2;
 
-    const centerY =
+    const dotY =
       y +
-      height / 2;
-
+      badgeHeight / 2;
 
     ctx.beginPath();
 
     ctx.arc(
       dotX,
-      centerY,
+      dotY,
       dotSize / 2,
       0,
       Math.PI * 2
@@ -1300,33 +1578,36 @@
 
 
     /*
-      Dark CTA text.
+      CTA text.
+
+      Actual canvas fillText.
+      html2canvas cannot turn this white.
     */
 
-    const textX =
-      x +
-      paddingLeft +
-      dotSize +
-      dotGap;
-
+    ctx.font =
+      `${fontWeight} ${fontSize}px Inter, Arial, sans-serif`;
 
     ctx.fillStyle =
       "#1F2937";
 
-    ctx.font =
-      `700 ${fontSize}px Inter, Arial, sans-serif`;
-
-    ctx.textBaseline =
-      "middle";
+    ctx.globalAlpha =
+      1;
 
     ctx.textAlign =
       "left";
 
+    ctx.textBaseline =
+      "middle";
 
     ctx.fillText(
       text,
-      textX,
-      centerY + 1
+      x +
+        paddingLeft +
+        dotSize +
+        gap,
+      y +
+        badgeHeight / 2 +
+        1
     );
 
 
@@ -1335,7 +1616,97 @@
 
 
   /* ==========================================================================
-     18. EXPORT
+     20. SAVE PNG
+     ========================================================================== */
+
+  async function saveCanvas(
+    canvas,
+    filename
+  ) {
+    const blob =
+      await new Promise(function (resolve) {
+        canvas.toBlob(
+          resolve,
+          "image/png"
+        );
+      });
+
+
+    if (!blob) {
+      throw new Error(
+        "Could not create PNG."
+      );
+    }
+
+
+    const blobUrl =
+      URL.createObjectURL(blob);
+
+
+    const isIOS =
+      /iPad|iPhone|iPod/.test(
+        navigator.userAgent
+      ) ||
+      (
+        navigator.platform === "MacIntel" &&
+        navigator.maxTouchPoints > 1
+      );
+
+
+    if (isIOS) {
+      const opened =
+        window.open(
+          blobUrl,
+          "_blank"
+        );
+
+
+      if (!opened) {
+        window.location.href =
+          blobUrl;
+      }
+
+
+      setTimeout(function () {
+        URL.revokeObjectURL(
+          blobUrl
+        );
+      }, 60000);
+
+
+      return;
+    }
+
+
+    const link =
+      document.createElement("a");
+
+    link.href =
+      blobUrl;
+
+    link.download =
+      filename;
+
+
+    document.body.appendChild(
+      link
+    );
+
+    link.click();
+
+    link.remove();
+
+
+    setTimeout(function () {
+      URL.revokeObjectURL(
+        blobUrl
+      );
+    }, 5000);
+  }
+
+
+  /* ==========================================================================
+     21. EXPORT PIN
      ========================================================================== */
 
   async function exportPin() {
@@ -1348,7 +1719,9 @@
     }
 
 
-    state.isExporting = true;
+    state.isExporting =
+      true;
+
 
     setExportButtonLoading();
 
@@ -1365,154 +1738,15 @@
 
 
       /*
-        Clone current pin.
+        Build export card.
       */
 
-      const clone =
-        dom.pinCard.cloneNode(true);
-
-
-      clone.classList.remove(
-        "pf-mobile-floating"
-      );
-
-
-      clone.id =
-        "pinCardExport";
+      const exportCard =
+        buildExportCard();
 
 
       /*
-        Exact export dimensions.
-      */
-
-      clone.style.position =
-        "relative";
-
-      clone.style.top =
-        "auto";
-
-      clone.style.right =
-        "auto";
-
-      clone.style.left =
-        "auto";
-
-      clone.style.width =
-        `${CONFIG.exportWidth}px`;
-
-      clone.style.height =
-        `${CONFIG.exportHeight}px`;
-
-      clone.style.minWidth =
-        `${CONFIG.exportWidth}px`;
-
-      clone.style.maxWidth =
-        `${CONFIG.exportWidth}px`;
-
-      clone.style.aspectRatio =
-        "auto";
-
-      clone.style.margin =
-        "0";
-
-      clone.style.borderRadius =
-        "0";
-
-      clone.style.boxShadow =
-        "none";
-
-      clone.style.transform =
-        "none";
-
-
-      /*
-        IMAGE
-      */
-
-      const cloneImage =
-        clone.querySelector(
-          "#pinImage"
-        );
-
-
-      if (cloneImage) {
-        cloneImage.style.position =
-          "absolute";
-
-        cloneImage.style.width =
-          "120%";
-
-        cloneImage.style.height =
-          "120%";
-
-        cloneImage.style.left =
-          "-10%";
-
-        cloneImage.style.top =
-          "-10%";
-
-        cloneImage.style.maxWidth =
-          "none";
-
-        cloneImage.style.objectFit =
-          "cover";
-
-        cloneImage.style.objectPosition =
-          "50% 50%";
-
-        cloneImage.style.transform =
-          getImageTransform();
-
-        cloneImage.style.transformOrigin =
-          "center center";
-      }
-
-
-      /*
-        TYPOGRAPHY
-      */
-
-      const cloneHeadline =
-        clone.querySelector(
-          "#pinHeadline"
-        );
-
-
-      if (cloneHeadline) {
-        cloneHeadline.style.fontSize =
-          "72px";
-
-        cloneHeadline.style.lineHeight =
-          "1.08";
-
-        cloneHeadline.style.fontFamily =
-          FONT_FAMILIES[state.font] ||
-          FONT_FAMILIES[
-            "league-spartan"
-          ];
-
-        cloneHeadline.style.color =
-          state.color;
-      }
-
-
-      const cloneSubheadline =
-        clone.querySelector(
-          "#pinSubheadline"
-        );
-
-
-      if (cloneSubheadline) {
-        cloneSubheadline.style.fontSize =
-          "34px";
-
-        cloneSubheadline.style.lineHeight =
-          "1.25";
-      }
-
-
-      /*
-        Put clone into export ghost.
+        Prepare export host.
       */
 
       dom.exportGhost.innerHTML =
@@ -1525,65 +1759,32 @@
         `${CONFIG.exportHeight}px`;
 
       dom.exportGhost.appendChild(
-        clone
-      );
-
-
-      await waitForCloneImage(
-        clone
+        exportCard
       );
 
 
       /*
-        Wait for final layout.
+        Let browser paint.
       */
 
-      await new Promise(
-        function (resolve) {
-          requestAnimationFrame(
-            function () {
-              requestAnimationFrame(
-                resolve
-              );
-            }
-          );
-        }
-      );
+      await new Promise(function (resolve) {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(resolve);
+        });
+      });
 
 
       /*
-        CTA IMPORTANT:
-
-        Capture CTA's position BEFORE hiding it.
-
-        html2canvas will NOT render the CTA.
-        We draw it ourselves afterwards.
+        Safari/data URL paint buffer.
       */
 
-      const cloneCtaWrap =
-        clone.querySelector(
-          "#pinCtaWrap"
+      await new Promise(function (resolve) {
+        setTimeout(
+          resolve,
+          100
         );
+      });
 
-
-      let ctaRect = null;
-
-
-      if (
-        cloneCtaWrap &&
-        getCtaText()
-      ) {
-        ctaRect =
-          cloneCtaWrap.getBoundingClientRect();
-
-        cloneCtaWrap.style.visibility =
-          "hidden";
-      }
-
-
-      /*
-        Render main pin.
-      */
 
       if (
         typeof html2canvas ===
@@ -1595,9 +1796,13 @@
       }
 
 
+      /*
+        Render card WITHOUT CTA.
+      */
+
       const canvas =
         await html2canvas(
-          clone,
+          exportCard,
           {
             width:
               CONFIG.exportWidth,
@@ -1605,13 +1810,26 @@
             height:
               CONFIG.exportHeight,
 
-            scale: 1,
+            scale:
+              1,
 
-            useCORS: true,
+            backgroundColor:
+              "#FFFFFF",
 
-            backgroundColor: null,
+            useCORS:
+              true,
 
-            logging: false,
+            allowTaint:
+              false,
+
+            logging:
+              false,
+
+            scrollX:
+              0,
+
+            scrollY:
+              0,
 
             windowWidth:
               CONFIG.exportWidth,
@@ -1623,146 +1841,30 @@
 
 
       /*
-        Draw CTA DIRECTLY onto PNG canvas.
-
-        Bye bye invisible CTA text. 🫵🏻
+        Draw CTA directly on final canvas.
       */
 
       drawCanvasCTA(
-        canvas,
-        clone,
-        ctaRect
+        canvas
+      );
+
+
+      console.log(
+        "PinForge export:",
+        canvas.width,
+        "×",
+        canvas.height
       );
 
 
       /*
-        Filename.
+        Save final PNG.
       */
 
-      const filename =
-        makeFilename();
-
-
-      /*
-        iOS detection.
-      */
-
-      const isIOS =
-        /iPad|iPhone|iPod/.test(
-          navigator.userAgent
-        ) ||
-        (
-          navigator.platform ===
-            "MacIntel" &&
-          navigator.maxTouchPoints > 1
-        );
-
-
-      /*
-        iOS:
-        open image in new tab.
-      */
-
-      if (isIOS) {
-        const dataUrl =
-          canvas.toDataURL(
-            "image/png",
-            1
-          );
-
-
-        const newWindow =
-          window.open();
-
-
-        if (newWindow) {
-          newWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <meta
-                  name="viewport"
-                  content="width=device-width,initial-scale=1"
-                >
-
-                <title>${filename}</title>
-
-                <style>
-                  html,
-                  body {
-                    margin: 0;
-                    padding: 0;
-                    background: #111827;
-                    min-height: 100%;
-                  }
-
-                  body {
-                    display: flex;
-                    align-items: flex-start;
-                    justify-content: center;
-                  }
-
-                  img {
-                    display: block;
-                    width: 100%;
-                    height: auto;
-                    max-width: 1000px;
-                  }
-                </style>
-              </head>
-
-              <body>
-                <img
-                  src="${dataUrl}"
-                  alt="Pinterest Pin"
-                >
-              </body>
-            </html>
-          `);
-
-          newWindow.document.close();
-
-        } else {
-
-          window.location.href =
-            dataUrl;
-        }
-
-
-      } else {
-
-        /*
-          Desktop / Android.
-        */
-
-        const dataUrl =
-          canvas.toDataURL(
-            "image/png",
-            1
-          );
-
-
-        const link =
-          document.createElement(
-            "a"
-          );
-
-
-        link.href =
-          dataUrl;
-
-        link.download =
-          filename;
-
-
-        document.body.appendChild(
-          link
-        );
-
-        link.click();
-
-        link.remove();
-      }
+      await saveCanvas(
+        canvas,
+        makeFilename()
+      );
 
 
       /*
@@ -1776,15 +1878,12 @@
       setExportButtonSuccess();
 
 
-      setTimeout(
-        function () {
-          resetExportButton();
+      setTimeout(function () {
+        resetExportButton();
 
-          state.isExporting =
-            false;
-        },
-        CONFIG.successDuration
-      );
+        state.isExporting =
+          false;
+      }, CONFIG.successDuration);
 
 
     } catch (error) {
@@ -1822,7 +1921,7 @@
 
 
   /* ==========================================================================
-     19. INITIAL STATE
+     22. INITIAL STATE
      ========================================================================== */
 
   function setInitialState() {
@@ -1835,13 +1934,34 @@
       "";
 
 
-    resetImagePosition();
+    /*
+      Image.
+    */
 
+    state.zoom =
+      CONFIG.zoomDefault;
+
+    state.posX =
+      CONFIG.positionDefault;
+
+    state.posY =
+      CONFIG.positionDefault;
+
+    updateImageControls();
+
+
+    /*
+      Overlay.
+    */
 
     setOverlayStyle(
       "bottom"
     );
 
+
+    /*
+      Font.
+    */
 
     state.font =
       "league-spartan";
@@ -1849,34 +1969,43 @@
     applyFont();
 
 
+    /*
+      Color.
+    */
+
     applyColor(
       "#ffffff"
     );
 
 
+    /*
+      CTA.
+    */
+
     state.ctaType =
       dom.ctaSelect?.value ||
       "SHOP ON ETSY";
 
-
-    state.customCta =
-      dom.ctaCustomInput?.value ||
-      "";
-
-
     renderCTA();
 
+
+    /*
+      Customize closed.
+    */
 
     setCustomizeOpen(
       false
     );
 
 
+    /*
+      Counters.
+    */
+
     if (dom.headlineCount) {
       dom.headlineCount.textContent =
         `${state.headline.length}/60`;
     }
-
 
     if (dom.subheadlineCount) {
       dom.subheadlineCount.textContent =
@@ -1888,6 +2017,13 @@
     renderSubheadline();
 
 
+    /*
+      Mirror after state is ready.
+    */
+
+    syncFloatingPreview();
+
+
     setTimeout(
       updateStylePill,
       100
@@ -1896,7 +2032,7 @@
 
 
   /* ==========================================================================
-     20. INIT
+     23. INIT
      ========================================================================== */
 
   function init() {
@@ -1916,17 +2052,27 @@
 
     setupCTA();
 
-    setupMobilePreview();
-
     setupExporter();
 
     setupHeader();
 
+
+    /*
+      Initialize real preview first.
+    */
+
     setInitialState();
 
 
+    /*
+      Then initialize floating mirror.
+    */
+
+    setupMobilePreview();
+
+
     console.log(
-      "PinForge stable CTA canvas build initialized ✨"
+      "PinForge v0.5 initialized ✨"
     );
   }
 
@@ -1939,9 +2085,7 @@
       "DOMContentLoaded",
       init
     );
-
   } else {
-
     init();
   }
 
