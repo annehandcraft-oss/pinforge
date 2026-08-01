@@ -1,6 +1,7 @@
 /* ==========================================================================
-   PinForge v0.2.1 — Styles
-   Clean Stable Baseline
+   PinForge v0.2 — style.css
+   Stable Mobile Preview + Image Position Build
+   Matches current index.html
    ========================================================================== */
 
 
@@ -33,6 +34,7 @@ button {
 
 .pin-card {
   aspect-ratio: 2 / 3;
+  isolation: isolate;
 }
 
 .pin-headline {
@@ -46,13 +48,71 @@ button {
 
 
 /* ==========================================================================
-   3. PAGE ENTRANCE ANIMATION
+   3. IMAGE LAYER
+
+   IMPORTANT:
+   Image is intentionally larger than the card.
+
+   This gives Position X / Position Y actual room to move,
+   including when Zoom = 100%.
+   ========================================================================== */
+
+#pinImageWrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+#pinImage {
+  position: absolute;
+
+  /*
+     Overscan is intentional.
+
+     The image starts slightly larger than the visible pin.
+     JS then moves it with translate3d().
+
+     This is much more reliable than relying only on
+     object-position, especially on Safari/iPhone.
+  */
+  width: 120%;
+  height: 120%;
+
+  left: -10%;
+  top: -10%;
+
+  max-width: none;
+
+  object-fit: cover;
+  object-position: center center;
+
+  transform-origin: center center;
+
+  will-change: transform;
+
+  transition: transform 0.08s linear;
+
+  -webkit-user-drag: none;
+  user-select: none;
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+
+/* ==========================================================================
+   4. PAGE ENTRANCE ANIMATION
    ========================================================================== */
 
 .pf-fade-up {
   opacity: 0;
   transform: translateY(12px);
-  animation: pfFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  animation:
+    pfFadeUp
+    0.7s
+    cubic-bezier(0.16, 1, 0.3, 1)
+    forwards;
 }
 
 @keyframes pfFadeUp {
@@ -64,8 +124,12 @@ button {
 
 
 /* ==========================================================================
-   4. HEADER
+   5. HEADER
    ========================================================================== */
+
+#siteHeader {
+  transform: translateZ(0);
+}
 
 #siteHeader.is-scrolled {
   box-shadow:
@@ -75,7 +139,7 @@ button {
 
 
 /* ==========================================================================
-   5. IMAGE UPLOAD
+   6. IMAGE UPLOAD
    ========================================================================== */
 
 #dropzone.is-dragover {
@@ -84,31 +148,11 @@ button {
   transform: scale(1.01);
 }
 
-/*
- * Pin image fills the entire preview.
- *
- * JS controls translate + scale.
- * object-position remains centered so it does not fight
- * against the transform calculations.
- */
-#pinImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 50%;
-
-  transform-origin: center center;
-
-  will-change: transform;
-
-  transition:
-    transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
-
-  display: block;
-}
-
 #pinImage.pf-animate-in {
-  animation: pfImageIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  animation:
+    pfImageIn
+    0.45s
+    cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes pfImageIn {
@@ -123,7 +167,7 @@ button {
 
 
 /* ==========================================================================
-   6. OVERLAY POSITION TOGGLE
+   7. OVERLAY POSITION TOGGLE
    ========================================================================== */
 
 #styleToggle {
@@ -132,7 +176,9 @@ button {
 
 #styleTogglePill {
   left: 4px;
-  width: calc((100% - 8px) / 3);
+
+  width:
+    calc((100% - 8px) / 3);
 }
 
 .style-btn {
@@ -149,17 +195,23 @@ button {
 
 
 /* ==========================================================================
-   7. CUSTOMIZE DESIGN DISCLOSURE
+   8. CUSTOMIZE DESIGN DISCLOSURE
    ========================================================================== */
 
 #customizePanel {
   display: grid;
+
   grid-template-rows: 0fr;
+
   opacity: 0;
 
   transition:
-    grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 0.3s ease;
+    grid-template-rows
+      0.4s
+      cubic-bezier(0.16, 1, 0.3, 1),
+    opacity
+      0.3s
+      ease;
 }
 
 #customizePanel > .pf-disclosure-inner {
@@ -171,25 +223,38 @@ button {
   opacity: 1;
 }
 
+#customizeChevron {
+  transition:
+    transform
+    0.3s
+    cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 #customizeChevron.is-open {
   transform: rotate(180deg);
 }
 
 
 /* ==========================================================================
-   8. FONT SELECTOR
+   9. FONT SELECTOR
    ========================================================================== */
 
 .font-chip {
   appearance: none;
 
-  border: 1px solid rgba(31, 41, 55, 0.10);
+  border:
+    1px solid
+    rgba(31, 41, 55, 0.10);
 
   background: #ffffff;
-  color: rgba(31, 41, 55, 0.72);
+
+  color:
+    rgba(31, 41, 55, 0.72);
 
   min-height: 38px;
-  padding: 7px 12px;
+
+  padding:
+    7px 12px;
 
   border-radius: 10px;
 
@@ -198,29 +263,37 @@ button {
   line-height: 1;
 
   cursor: pointer;
-  user-select: none;
 
   transition:
     color 0.2s ease,
     background-color 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease,
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transform
+      0.2s
+      cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .font-chip:hover {
   color: #1F2937;
-  border-color: rgba(184, 138, 88, 0.40);
-  transform: translateY(-1px);
+
+  border-color:
+    rgba(184, 138, 88, 0.40);
+
+  transform:
+    translateY(-1px);
 }
 
 .font-chip.is-active {
   color: #ffffff;
+
   background: #1F2937;
+
   border-color: #1F2937;
 
   box-shadow:
-    0 5px 14px -7px rgba(31, 41, 55, 0.45);
+    0 5px 14px -7px
+    rgba(31, 41, 55, 0.45);
 }
 
 .font-chip:active {
@@ -229,7 +302,7 @@ button {
 
 
 /* ==========================================================================
-   9. HEADLINE COLOR SWATCHES
+   10. HEADLINE COLOR SWATCHES
    ========================================================================== */
 
 .color-swatch {
@@ -237,22 +310,35 @@ button {
 
   width: 30px;
   height: 30px;
-  flex: 0 0 30px;
+
+  flex:
+    0 0 30px;
 
   border-radius: 9999px;
 
-  border: 2px solid #ffffff;
-  outline: 1px solid rgba(31, 41, 55, 0.14);
+  border:
+    2px solid #ffffff;
+
+  outline:
+    1px solid
+    rgba(31, 41, 55, 0.14);
 
   box-shadow:
-    0 1px 2px rgba(31, 41, 55, 0.06);
+    0 1px 2px
+    rgba(31, 41, 55, 0.06);
 
   cursor: pointer;
 
   transition:
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.2s ease,
-    outline-color 0.2s ease;
+    transform
+      0.2s
+      cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow
+      0.2s
+      ease,
+    outline-color
+      0.2s
+      ease;
 }
 
 .color-swatch:hover {
@@ -260,42 +346,25 @@ button {
 }
 
 .color-swatch.is-active {
-  outline: 2px solid #B88A58;
+  outline:
+    2px solid #B88A58;
+
   outline-offset: 2px;
+
   transform: scale(1.06);
 }
 
-.color-swatch.is-active::after {
-  content: "";
-
-  position: absolute;
-  inset: 50% auto auto 50%;
-
-  width: 6px;
-  height: 10px;
-
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-
-  transform:
-    translate(-50%, -58%)
-    rotate(45deg);
-
-  opacity: 0;
-}
-
-
-/* White swatch visible boundary */
-
 .color-swatch[data-color="#ffffff"] {
   box-shadow:
-    inset 0 0 0 1px rgba(31, 41, 55, 0.10),
-    0 1px 2px rgba(31, 41, 55, 0.06);
+    inset 0 0 0 1px
+      rgba(31, 41, 55, 0.10),
+    0 1px 2px
+      rgba(31, 41, 55, 0.06);
 }
 
 
 /* ==========================================================================
-   10. CUSTOM COLOR PICKER
+   11. CUSTOM COLOR PICKER
    ========================================================================== */
 
 .color-swatch--custom {
@@ -318,11 +387,15 @@ button {
   content: "+";
 
   position: absolute;
-  inset: 50% auto auto 50%;
 
-  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+
+  transform:
+    translate(-50%, -50%);
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
@@ -331,10 +404,15 @@ button {
 
   border-radius: 9999px;
 
-  background: rgba(255, 255, 255, 0.92);
+  background:
+    rgba(255, 255, 255, 0.92);
+
   color: #1F2937;
 
-  font-family: "Inter", sans-serif;
+  font-family:
+    "Inter",
+    sans-serif;
+
   font-size: 13px;
   font-weight: 700;
 
@@ -343,18 +421,20 @@ button {
 
 #customColorInput {
   position: absolute;
+
   inset: 0;
 
   width: 100%;
   height: 100%;
 
   opacity: 0;
+
   cursor: pointer;
 }
 
 
 /* ==========================================================================
-   11. CTA SELECT
+   12. CTA
    ========================================================================== */
 
 #ctaSelect {
@@ -362,24 +442,34 @@ button {
 }
 
 #ctaCustomInput {
-  animation: pfFieldIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation:
+    pfFieldIn
+    0.25s
+    cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#pinCtaWrap {
+  position: relative;
+  z-index: 12;
 }
 
 @keyframes pfFieldIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform:
+      translateY(-4px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform:
+      translateY(0);
   }
 }
 
 
 /* ==========================================================================
-   12. RANGE SLIDERS
+   13. RANGE SLIDERS
    ========================================================================== */
 
 .pf-slider {
@@ -391,10 +481,14 @@ button {
 
   border-radius: 9999px;
 
-  background: rgba(31, 41, 55, 0.08);
+  background:
+    rgba(31, 41, 55, 0.08);
 
   outline: none;
+
   cursor: pointer;
+
+  touch-action: pan-x;
 }
 
 
@@ -412,30 +506,23 @@ button {
   background: #ffffff;
 
   border:
-    1px solid rgba(31, 41, 55, 0.10);
+    1px solid
+    rgba(31, 41, 55, 0.10);
 
   box-shadow:
-    0 1px 3px rgba(31, 41, 55, 0.10),
-    0 3px 8px rgba(31, 41, 55, 0.08);
+    0 1px 3px
+      rgba(31, 41, 55, 0.10),
+    0 3px 8px
+      rgba(31, 41, 55, 0.08);
 
   cursor: grab;
-
-  transition:
-    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.18s ease;
-}
-
-.pf-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.12);
-
-  box-shadow:
-    0 1px 3px rgba(31, 41, 55, 0.12),
-    0 5px 12px rgba(31, 41, 55, 0.12);
 }
 
 .pf-slider::-webkit-slider-thumb:active {
   cursor: grabbing;
-  transform: scale(1.06);
+
+  transform:
+    scale(1.06);
 }
 
 
@@ -446,7 +533,8 @@ button {
 
   border-radius: 9999px;
 
-  background: rgba(31, 41, 55, 0.08);
+  background:
+    rgba(31, 41, 55, 0.08);
 }
 
 .pf-slider::-moz-range-thumb {
@@ -458,18 +546,21 @@ button {
   background: #ffffff;
 
   border:
-    1px solid rgba(31, 41, 55, 0.10);
+    1px solid
+    rgba(31, 41, 55, 0.10);
 
   box-shadow:
-    0 1px 3px rgba(31, 41, 55, 0.10),
-    0 3px 8px rgba(31, 41, 55, 0.08);
+    0 1px 3px
+      rgba(31, 41, 55, 0.10),
+    0 3px 8px
+      rgba(31, 41, 55, 0.08);
 
   cursor: grab;
 }
 
 
 /* ==========================================================================
-   13. DOWNLOAD BUTTON
+   14. DOWNLOAD BUTTON
    ========================================================================== */
 
 .pf-btn-shine::before {
@@ -493,10 +584,13 @@ button {
       transparent 100%
     );
 
-  transform: skewX(-18deg);
+  transform:
+    skewX(-18deg);
 
   transition:
-    left 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    left
+    0.65s
+    cubic-bezier(0.16, 1, 0.3, 1);
 
   pointer-events: none;
 }
@@ -510,28 +604,33 @@ button {
 }
 
 #downloadBtn.pf-success {
-  background: #059669 !important;
+  background:
+    #059669 !important;
 }
 
 
 /* ==========================================================================
-   14. LOADING SPINNER
+   15. SPINNER
    ========================================================================== */
 
 .pf-spin {
   animation:
-    pfSpin 0.75s linear infinite;
+    pfSpin
+    0.75s
+    linear
+    infinite;
 }
 
 @keyframes pfSpin {
   to {
-    transform: rotate(360deg);
+    transform:
+      rotate(360deg);
   }
 }
 
 
 /* ==========================================================================
-   15. FOCUS STATES
+   16. FOCUS
    ========================================================================== */
 
 .font-chip:focus-visible,
@@ -540,21 +639,31 @@ button {
 #customizeToggleBtn:focus-visible,
 #resetPositionBtn:focus-visible {
   outline:
-    2px solid rgba(184, 138, 88, 0.65);
+    2px solid
+    rgba(184, 138, 88, 0.65);
 
   outline-offset: 2px;
 }
 
 
 /* ==========================================================================
-   16. EXPORT GHOST
+   17. EXPORT GHOST
    ========================================================================== */
 
 #exportGhost {
   position: fixed;
 
-  top: -10000px;
-  left: -10000px;
+  top: 0;
+
+  /*
+     IMPORTANT:
+     Do NOT use display:none.
+
+     html2canvas needs the export DOM
+     to remain rendered.
+  */
+
+  left: -12000px;
 
   width: 1000px;
   height: 1500px;
@@ -568,169 +677,208 @@ button {
 
 
 /* ==========================================================================
-   17. MOBILE
-   IMPORTANT:
-   The real #pinCard stays in normal document flow.
-   We DO NOT make it sticky/fixed here.
-   A separate cloned preview will handle that in app.js.
+   18. DESKTOP PREVIEW
+
+   Desktop gets native sticky behaviour.
    ========================================================================== */
 
-@media (max-width: 1023px) {
+@media (min-width: 1024px) {
 
-  /*
-   * Override the old .lg:sticky mobile behavior.
-   * Tailwind's desktop sticky behavior remains untouched.
-   */
+  main > div > section:last-child {
+    position: sticky;
 
-  .lg\:sticky {
-    position: static !important;
-    top: auto !important;
-  }
+    top: 88px;
 
-  /*
-   * Keep the original preview large and beautiful.
-   */
-
-  #pinCard {
-    width: 100%;
-    max-width: 450px !important;
-
-    margin-left: auto;
-    margin-right: auto;
-
-    position: relative;
-
-    aspect-ratio: 2 / 3;
-
-    box-shadow:
-      0 10px 30px rgba(17, 24, 39, 0.12);
-  }
-
-
-  /*
-   * Separate floating clone.
-   * app.js will create this element.
-   *
-   * Since this is NOT the original pinCard,
-   * scrolling cannot cause layout feedback/flickering.
-   */
-
-  #pfMobilePreview {
-    position: fixed;
-
-    top: 76px;
-    right: 14px;
-
-    width: 128px;
-    height: 192px;
-
-    z-index: 999;
-
-    overflow: hidden;
-
-    border-radius: 12px;
-
-    background: #ffffff;
-
-    box-shadow:
-      0 12px 32px rgba(17, 24, 39, 0.20),
-      0 3px 10px rgba(17, 24, 39, 0.10);
-
-    pointer-events: none;
-
-    opacity: 0;
-    visibility: hidden;
-
-    transform:
-      translateY(-8px)
-      scale(0.96);
-
-    transition:
-      opacity 0.2s ease,
-      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-      visibility 0.2s ease;
-  }
-
-  #pfMobilePreview.is-visible {
-    opacity: 1;
-    visibility: visible;
-
-    transform:
-      translateY(0)
-      scale(1);
-  }
-
-
-  /*
-   * The clone contains another 2:3 card.
-   */
-
-  #pfMobilePreview .pf-mobile-preview-card {
-    width: 128px !important;
-    height: 192px !important;
-
-    min-width: 128px !important;
-    max-width: 128px !important;
-
-    margin: 0 !important;
-
-    border-radius: 12px !important;
-
-    box-shadow: none !important;
-
-    overflow: hidden;
-
-    position: relative;
-  }
-
-
-  /*
-   * Shrink typography proportionally inside mini preview.
-   */
-
-  #pfMobilePreview #pinHeadline {
-    font-size: 9px !important;
-    line-height: 1.12 !important;
-  }
-
-  #pfMobilePreview #pinSubheadline {
-    font-size: 5.5px !important;
-    line-height: 1.2 !important;
-  }
-
-  #pfMobilePreview #pinTextWrap {
-    gap: 3px !important;
-  }
-
-  #pfMobilePreview #pinCtaWrap {
-    transform: scale(0.42);
-    transform-origin: left center;
-
-    margin-top: -2px;
-    margin-bottom: -2px;
-  }
-
-  #pfMobilePreview #pinCtaLabel {
-    white-space: nowrap;
+    align-self: start;
   }
 
 }
 
 
 /* ==========================================================================
-   18. SMALL MOBILE
+   19. MOBILE LIVE PREVIEW
+
+   THIS is the important bit.
+
+   We do NOT make the original giant preview column sticky.
+   That was what caused the page to jump/flicker.
+
+   The whole preview section stays in normal document flow.
+
+   JS will add .pf-mobile-floating to #pinCard only when the
+   editor controls are being edited.
+   ========================================================================== */
+
+@media (max-width: 1023px) {
+
+  /*
+     Give the preview section a stable footprint.
+
+     This prevents layout jumping when #pinCard
+     switches into floating mode.
+  */
+
+  main > div > section:last-child {
+    position: relative !important;
+
+    top: auto !important;
+
+    z-index: auto !important;
+
+    background: transparent !important;
+
+    backdrop-filter: none !important;
+
+    -webkit-backdrop-filter: none !important;
+  }
+
+
+  /*
+     Normal preview before user scrolls into controls.
+  */
+
+  #pinCard {
+    width: 100%;
+
+    max-width: 420px;
+
+    margin-left: auto;
+    margin-right: auto;
+
+    transform:
+      translateZ(0);
+  }
+
+
+  /*
+     Floating compact preview.
+
+     JS toggles this class.
+
+     Fixed positioning means Safari doesn't have to constantly
+     recalculate a sticky element inside the grid while scrolling.
+     This removes the flashing/jumping behaviour.
+  */
+
+  #pinCard.pf-mobile-floating {
+    position: fixed !important;
+
+    top:
+      calc(
+        72px +
+        env(safe-area-inset-top, 0px)
+      );
+
+    right: 14px;
+
+    left: auto;
+
+    width: 150px !important;
+
+    max-width: 150px !important;
+
+    margin: 0 !important;
+
+    z-index: 35;
+
+    border-radius: 12px !important;
+
+    box-shadow:
+      0 8px 28px
+      rgba(17, 24, 39, 0.22);
+
+    /*
+       Kill Tailwind hover transform while floating.
+    */
+
+    transform:
+      translate3d(0, 0, 0) !important;
+
+    transition:
+      opacity 0.18s ease,
+      box-shadow 0.18s ease !important;
+
+    animation: none !important;
+  }
+
+
+  #pinCard.pf-mobile-floating:hover {
+    transform:
+      translate3d(0, 0, 0) !important;
+  }
+
+
+  /*
+     Typography scales naturally with compact card.
+  */
+
+  #pinCard.pf-mobile-floating .pin-headline {
+    font-size: 13px !important;
+
+    line-height: 1.08 !important;
+  }
+
+
+  #pinCard.pf-mobile-floating .pin-subheadline {
+    font-size: 7px !important;
+
+    line-height: 1.2 !important;
+  }
+
+
+  #pinCard.pf-mobile-floating #pinTextWrap {
+    gap: 3px !important;
+  }
+
+
+  #pinCard.pf-mobile-floating #pinCtaWrap span {
+    padding:
+      3px 6px !important;
+
+    gap:
+      3px !important;
+  }
+
+
+  #pinCard.pf-mobile-floating #pinCtaLabel {
+    font-size:
+      5.5px !important;
+  }
+
+
+  #pinCard.pf-mobile-floating #pinCtaWrap span > span:first-child {
+    width:
+      3px !important;
+
+    height:
+      3px !important;
+  }
+
+}
+
+
+/* ==========================================================================
+   20. SMALL MOBILE
    ========================================================================== */
 
 @media (max-width: 639px) {
 
   .pin-headline {
     font-size:
-      clamp(1.65rem, 7vw, 2.2rem);
+      clamp(
+        1.65rem,
+        7vw,
+        2.2rem
+      );
   }
 
   .pin-subheadline {
     font-size:
-      clamp(0.82rem, 3.5vw, 1rem);
+      clamp(
+        0.82rem,
+        3.5vw,
+        1rem
+      );
   }
 
   .font-chip {
@@ -757,7 +905,7 @@ button {
 
 
 /* ==========================================================================
-   19. VERY SMALL MOBILE
+   21. VERY SMALL MOBILE
    ========================================================================== */
 
 @media (max-width: 380px) {
@@ -774,27 +922,21 @@ button {
     flex-basis: 26px;
   }
 
-  #pfMobilePreview {
-    width: 112px;
-    height: 168px;
+  #pinCard.pf-mobile-floating {
+    width:
+      135px !important;
+
+    max-width:
+      135px !important;
 
     right: 10px;
-    top: 72px;
-  }
-
-  #pfMobilePreview .pf-mobile-preview-card {
-    width: 112px !important;
-    height: 168px !important;
-
-    min-width: 112px !important;
-    max-width: 112px !important;
   }
 
 }
 
 
 /* ==========================================================================
-   20. REDUCED MOTION
+   22. REDUCED MOTION
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -802,7 +944,8 @@ button {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
+    scroll-behavior:
+      auto !important;
 
     animation-duration:
       0.01ms !important;
