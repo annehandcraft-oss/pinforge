@@ -1,6 +1,6 @@
 /* ==========================================================================
-   PinForge v0.2 — app.js
-   Matches current index.html + style.css
+   PinForge v0.2.2 — app.js
+   Mobile Preview + Image Position Fix + Safari Export Fix
    ========================================================================== */
 
 (function () {
@@ -26,6 +26,10 @@
     image: {
       zoomDefault: 100,
       positionDefault: 50,
+
+      // How far X/Y sliders can visually move the image.
+      // Kept moderate so the image does not fly outside the card.
+      translateStrength: 0.30,
     },
 
     cta: {
@@ -33,8 +37,13 @@
       noneValue: "none",
     },
 
-    successMessageDurationMs: 1400,
+    successMessageDurationMs: 1800,
     headerScrollThresholdPx: 8,
+
+    mobile: {
+      breakpoint: 1024,
+      stickyTriggerOffset: 110,
+    },
   };
 
   /* ==========================================================================
@@ -199,16 +208,48 @@
      IMAGE TRANSFORM
      ========================================================================== */
 
+  function getImageTransform() {
+    const scale = state.zoom / 100;
+
+    const moveX =
+      (state.posX - 50) *
+      CONFIG.image.translateStrength;
+
+    const moveY =
+      (state.posY - 50) *
+      CONFIG.image.translateStrength;
+
+    return {
+      scale,
+      moveX,
+      moveY,
+      transform:
+        `translate(${moveX}%, ${moveY}%) scale(${scale})`,
+    };
+  }
+
   function applyImageTransform() {
     if (!dom.pinImage) return;
 
-    const scale = state.zoom / 100;
+    const transform = getImageTransform();
 
-    dom.pinImage.style.transform = `scale(${scale})`;
-    dom.pinImage.style.transformOrigin = "center center";
+    /*
+      IMPORTANT:
+      We use BOTH object-position and translate.
+
+      object-position changes the crop focal point.
+      translate guarantees the movement is visually noticeable,
+      especially for vertical Position Y on mobile Safari.
+    */
 
     dom.pinImage.style.objectPosition =
       `${state.posX}% ${state.posY}%`;
+
+    dom.pinImage.style.transform =
+      transform.transform;
+
+    dom.pinImage.style.transformOrigin =
+      "center center";
   }
 
   function updateImageControls() {
@@ -217,7 +258,8 @@
     }
 
     if (dom.zoomValue) {
-      dom.zoomValue.textContent = `${state.zoom}%`;
+      dom.zoomValue.textContent =
+        `${state.zoom}%`;
     }
 
     if (dom.posXSlider) {
@@ -232,9 +274,14 @@
   }
 
   function resetImagePosition() {
-    state.zoom = CONFIG.image.zoomDefault;
-    state.posX = CONFIG.image.positionDefault;
-    state.posY = CONFIG.image.positionDefault;
+    state.zoom =
+      CONFIG.image.zoomDefault;
+
+    state.posX =
+      CONFIG.image.positionDefault;
+
+    state.posY =
+      CONFIG.image.positionDefault;
 
     updateImageControls();
   }
@@ -262,27 +309,43 @@
       state.imageSrc = event.target.result;
 
       if (dom.pinImage) {
-        dom.pinImage.src = state.imageSrc;
-        dom.pinImage.classList.remove("hidden");
-        dom.pinImage.classList.add("pf-animate-in");
+        dom.pinImage.src =
+          state.imageSrc;
+
+        dom.pinImage.classList.remove(
+          "hidden"
+        );
+
+        dom.pinImage.classList.add(
+          "pf-animate-in"
+        );
       }
 
       if (dom.pinPlaceholder) {
-        dom.pinPlaceholder.classList.add("hidden");
+        dom.pinPlaceholder.classList.add(
+          "hidden"
+        );
       }
 
       if (dom.removeImageBtn) {
-        dom.removeImageBtn.classList.remove("hidden");
+        dom.removeImageBtn.classList.remove(
+          "hidden"
+        );
       }
 
-      // IMPORTANT:
-      // Every new image starts from a clean default position.
+      /*
+        Every new image starts at:
+        Zoom 100
+        X 50
+        Y 50
+      */
+
       resetImagePosition();
 
-      setTimeout(() => {
-        if (dom.pinImage) {
-          dom.pinImage.classList.remove("pf-animate-in");
-        }
+      setTimeout(function () {
+        dom.pinImage?.classList.remove(
+          "pf-animate-in"
+        );
       }, 500);
     };
 
@@ -290,66 +353,91 @@
   }
 
   function setupUpload() {
-    if (!dom.dropzone || !dom.fileInput) return;
+    if (!dom.dropzone || !dom.fileInput) {
+      return;
+    }
 
-    dom.fileInput.addEventListener("change", function (event) {
-      const file =
-        event.target.files &&
-        event.target.files[0];
+    dom.fileInput.addEventListener(
+      "change",
+      function (event) {
+        const file =
+          event.target.files?.[0];
 
-      if (file) {
-        handleFile(file);
+        if (file) {
+          handleFile(file);
+        }
       }
-    });
+    );
 
-    ["dragenter", "dragover"].forEach(function (eventName) {
-      dom.dropzone.addEventListener(eventName, function (event) {
-        event.preventDefault();
-        event.stopPropagation();
+    ["dragenter", "dragover"].forEach(
+      function (eventName) {
+        dom.dropzone.addEventListener(
+          eventName,
+          function (event) {
+            event.preventDefault();
+            event.stopPropagation();
 
-        dom.dropzone.classList.add("is-dragover");
-      });
-    });
-
-    ["dragleave", "drop"].forEach(function (eventName) {
-      dom.dropzone.addEventListener(eventName, function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        dom.dropzone.classList.remove("is-dragover");
-      });
-    });
-
-    dom.dropzone.addEventListener("drop", function (event) {
-      const files = event.dataTransfer.files;
-
-      if (files && files[0]) {
-        handleFile(files[0]);
+            dom.dropzone.classList.add(
+              "is-dragover"
+            );
+          }
+        );
       }
-    });
+    );
 
-    if (dom.removeImageBtn) {
-      dom.removeImageBtn.addEventListener("click", function () {
+    ["dragleave", "drop"].forEach(
+      function (eventName) {
+        dom.dropzone.addEventListener(
+          eventName,
+          function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            dom.dropzone.classList.remove(
+              "is-dragover"
+            );
+          }
+        );
+      }
+    );
+
+    dom.dropzone.addEventListener(
+      "drop",
+      function (event) {
+        const files =
+          event.dataTransfer?.files;
+
+        if (files?.[0]) {
+          handleFile(files[0]);
+        }
+      }
+    );
+
+    dom.removeImageBtn?.addEventListener(
+      "click",
+      function () {
         state.imageSrc = null;
 
         if (dom.pinImage) {
           dom.pinImage.src = "";
-          dom.pinImage.classList.add("hidden");
+          dom.pinImage.classList.add(
+            "hidden"
+          );
         }
 
-        if (dom.pinPlaceholder) {
-          dom.pinPlaceholder.classList.remove("hidden");
-        }
+        dom.pinPlaceholder?.classList.remove(
+          "hidden"
+        );
 
-        dom.removeImageBtn.classList.add("hidden");
+        dom.removeImageBtn.classList.add(
+          "hidden"
+        );
 
-        if (dom.fileInput) {
-          dom.fileInput.value = "";
-        }
+        dom.fileInput.value = "";
 
         resetImagePosition();
-      });
-    }
+      }
+    );
   }
 
   /* ==========================================================================
@@ -357,37 +445,45 @@
      ========================================================================== */
 
   function setupImagePosition() {
-    if (dom.zoomSlider) {
-      dom.zoomSlider.addEventListener("input", function (event) {
-        state.zoom = parseInt(event.target.value, 10);
+    dom.zoomSlider?.addEventListener(
+      "input",
+      function (event) {
+        state.zoom =
+          Number(event.target.value);
 
         if (dom.zoomValue) {
-          dom.zoomValue.textContent = `${state.zoom}%`;
+          dom.zoomValue.textContent =
+            `${state.zoom}%`;
         }
 
         applyImageTransform();
-      });
-    }
+      }
+    );
 
-    if (dom.posXSlider) {
-      dom.posXSlider.addEventListener("input", function (event) {
-        state.posX = parseInt(event.target.value, 10);
+    dom.posXSlider?.addEventListener(
+      "input",
+      function (event) {
+        state.posX =
+          Number(event.target.value);
+
         applyImageTransform();
-      });
-    }
+      }
+    );
 
-    if (dom.posYSlider) {
-      dom.posYSlider.addEventListener("input", function (event) {
-        state.posY = parseInt(event.target.value, 10);
+    dom.posYSlider?.addEventListener(
+      "input",
+      function (event) {
+        state.posY =
+          Number(event.target.value);
+
         applyImageTransform();
-      });
-    }
+      }
+    );
 
-    if (dom.resetPositionBtn) {
-      dom.resetPositionBtn.addEventListener("click", function () {
-        resetImagePosition();
-      });
-    }
+    dom.resetPositionBtn?.addEventListener(
+      "click",
+      resetImagePosition
+    );
   }
 
   /* ==========================================================================
@@ -395,35 +491,43 @@
      ========================================================================== */
 
   function setupTextPreview() {
-    if (dom.headlineInput && dom.pinHeadline) {
-      dom.headlineInput.addEventListener("input", function (event) {
-        state.headline = event.target.value;
+    dom.headlineInput?.addEventListener(
+      "input",
+      function (event) {
+        state.headline =
+          event.target.value;
 
-        dom.pinHeadline.textContent =
-          state.headline.trim() ||
-          CONFIG.text.headlineFallback;
+        if (dom.pinHeadline) {
+          dom.pinHeadline.textContent =
+            state.headline.trim() ||
+            CONFIG.text.headlineFallback;
+        }
 
         if (dom.headlineCount) {
           dom.headlineCount.textContent =
             `${state.headline.length}/60`;
         }
-      });
-    }
+      }
+    );
 
-    if (dom.subheadlineInput && dom.pinSubheadline) {
-      dom.subheadlineInput.addEventListener("input", function (event) {
-        state.subheadline = event.target.value;
+    dom.subheadlineInput?.addEventListener(
+      "input",
+      function (event) {
+        state.subheadline =
+          event.target.value;
 
-        dom.pinSubheadline.textContent =
-          state.subheadline.trim() ||
-          CONFIG.text.subheadlineFallback;
+        if (dom.pinSubheadline) {
+          dom.pinSubheadline.textContent =
+            state.subheadline.trim() ||
+            CONFIG.text.subheadlineFallback;
+        }
 
         if (dom.subheadlineCount) {
           dom.subheadlineCount.textContent =
             `${state.subheadline.length}/80`;
         }
-      });
-    }
+      }
+    );
   }
 
   /* ==========================================================================
@@ -431,7 +535,12 @@
      ========================================================================== */
 
   function updatePillPosition() {
-    if (!dom.styleTogglePill || !dom.styleToggle) return;
+    if (
+      !dom.styleTogglePill ||
+      !dom.styleToggle
+    ) {
+      return;
+    }
 
     const activeButton =
       dom.styleToggle.querySelector(
@@ -450,7 +559,11 @@
       `${buttonRect.width}px`;
 
     dom.styleTogglePill.style.transform =
-      `translateX(${buttonRect.left - toggleRect.left - 4}px)`;
+      `translateX(${
+        buttonRect.left -
+        toggleRect.left -
+        4
+      }px)`;
   }
 
   function setOverlayStyle(styleKey) {
@@ -458,31 +571,32 @@
 
     state.style = styleKey;
 
-    const preset = STYLE_PRESETS[styleKey];
+    const preset =
+      STYLE_PRESETS[styleKey];
 
     if (dom.pinTextWrap) {
-      dom.pinTextWrap.className = preset.wrap;
+      dom.pinTextWrap.className =
+        preset.wrap;
     }
 
     if (dom.pinScrim) {
-      dom.pinScrim.className = preset.scrim;
+      dom.pinScrim.className =
+        preset.scrim;
     }
 
-    if (dom.styleToggle) {
-      dom.styleToggle
-        .querySelectorAll(".style-btn")
-        .forEach(function (button) {
-          const isActive =
-            button.getAttribute("data-style") === styleKey;
+    dom.styleToggle
+      ?.querySelectorAll(".style-btn")
+      .forEach(function (button) {
+        button.classList.toggle(
+          "is-active",
+          button.dataset.style ===
+            styleKey
+        );
+      });
 
-          button.classList.toggle(
-            "is-active",
-            isActive
-          );
-        });
-    }
-
-    requestAnimationFrame(updatePillPosition);
+    requestAnimationFrame(
+      updatePillPosition
+    );
   }
 
   function setupStyleToggle() {
@@ -492,14 +606,15 @@
       "click",
       function (event) {
         const button =
-          event.target.closest(".style-btn");
+          event.target.closest(
+            ".style-btn"
+          );
 
         if (!button) return;
 
-        const styleKey =
-          button.getAttribute("data-style");
-
-        setOverlayStyle(styleKey);
+        setOverlayStyle(
+          button.dataset.style
+        );
       }
     );
 
@@ -507,51 +622,35 @@
       "resize",
       updatePillPosition
     );
-
-    setTimeout(updatePillPosition, 100);
   }
 
   /* ==========================================================================
-     CUSTOMIZE DESIGN ACCORDION
+     CUSTOMIZE DESIGN
      ========================================================================== */
 
   function setCustomizePanel(open) {
     state.isCustomizingOpen = open;
 
-    if (dom.customizePanel) {
-      dom.customizePanel.classList.toggle(
-        "is-open",
-        open
-      );
-    }
+    dom.customizePanel?.classList.toggle(
+      "is-open",
+      open
+    );
 
-    if (dom.customizeChevron) {
-      dom.customizeChevron.classList.toggle(
-        "is-open",
-        open
-      );
-    }
+    dom.customizeChevron?.classList.toggle(
+      "is-open",
+      open
+    );
 
-    if (dom.customizeToggleBtn) {
-      dom.customizeToggleBtn.setAttribute(
-        "aria-expanded",
-        open ? "true" : "false"
-      );
-    }
+    dom.customizeToggleBtn?.setAttribute(
+      "aria-expanded",
+      open ? "true" : "false"
+    );
   }
 
   function setupDisclosure() {
-    if (
-      !dom.customizeToggleBtn ||
-      !dom.customizePanel
-    ) {
-      return;
-    }
-
-    // Start CLOSED by default.
     setCustomizePanel(false);
 
-    dom.customizeToggleBtn.addEventListener(
+    dom.customizeToggleBtn?.addEventListener(
       "click",
       function () {
         setCustomizePanel(
@@ -566,20 +665,22 @@
      ========================================================================== */
 
   function setupFontSelector() {
-    if (!dom.fontSelector) return;
-
-    dom.fontSelector.addEventListener(
+    dom.fontSelector?.addEventListener(
       "click",
       function (event) {
         const chip =
-          event.target.closest(".font-chip");
+          event.target.closest(
+            ".font-chip"
+          );
 
         if (!chip) return;
 
         const fontKey =
-          chip.getAttribute("data-font");
+          chip.dataset.font;
 
-        if (!FONT_FAMILIES[fontKey]) return;
+        if (!FONT_FAMILIES[fontKey]) {
+          return;
+        }
 
         state.font = fontKey;
 
@@ -608,14 +709,13 @@
     state.color = color;
 
     if (dom.pinHeadline) {
-      dom.pinHeadline.style.color = color;
+      dom.pinHeadline.style.color =
+        color;
     }
   }
 
   function setupColorSelector() {
-    if (!dom.colorSelector) return;
-
-    dom.colorSelector.addEventListener(
+    dom.colorSelector?.addEventListener(
       "click",
       function (event) {
         const swatch =
@@ -625,13 +725,14 @@
 
         if (!swatch) return;
 
-        const color =
-          swatch.getAttribute("data-color");
-
-        applyHeadlineColor(color);
+        applyHeadlineColor(
+          swatch.dataset.color
+        );
 
         dom.colorSelector
-          .querySelectorAll(".color-swatch")
+          .querySelectorAll(
+            ".color-swatch"
+          )
           .forEach(function (item) {
             item.classList.toggle(
               "is-active",
@@ -641,32 +742,30 @@
       }
     );
 
-    if (
-      dom.customColorInput &&
-      dom.customColorSwatch
-    ) {
-      dom.customColorInput.addEventListener(
-        "input",
-        function (event) {
-          const color = event.target.value;
+    dom.customColorInput?.addEventListener(
+      "input",
+      function (event) {
+        applyHeadlineColor(
+          event.target.value
+        );
 
-          applyHeadlineColor(color);
-
-          dom.colorSelector
-            .querySelectorAll(".color-swatch")
-            .forEach(function (item) {
-              item.classList.toggle(
-                "is-active",
-                item === dom.customColorSwatch
-              );
-            });
-        }
-      );
-    }
+        dom.colorSelector
+          ?.querySelectorAll(
+            ".color-swatch"
+          )
+          .forEach(function (item) {
+            item.classList.toggle(
+              "is-active",
+              item ===
+                dom.customColorSwatch
+            );
+          });
+      }
+    );
   }
 
   /* ==========================================================================
-     CTA BADGE
+     CTA
      ========================================================================== */
 
   function updateCtaDisplay() {
@@ -681,11 +780,15 @@
       state.ctaType ===
       CONFIG.cta.noneValue
     ) {
-      dom.pinCtaWrap.classList.add("hidden");
+      dom.pinCtaWrap.classList.add(
+        "hidden"
+      );
       return;
     }
 
-    dom.pinCtaWrap.classList.remove("hidden");
+    dom.pinCtaWrap.classList.remove(
+      "hidden"
+    );
 
     let label = state.ctaType;
 
@@ -698,45 +801,177 @@
         "SHOP NOW";
     }
 
-    dom.pinCtaLabel.textContent = label;
+    dom.pinCtaLabel.textContent =
+      label;
   }
 
   function setupCtaSelector() {
-    if (!dom.ctaSelect) return;
-
-    dom.ctaSelect.addEventListener(
+    dom.ctaSelect?.addEventListener(
       "change",
       function (event) {
-        state.ctaType = event.target.value;
+        state.ctaType =
+          event.target.value;
 
-        if (dom.ctaCustomInput) {
-          dom.ctaCustomInput.classList.toggle(
-            "hidden",
-            state.ctaType !==
-              CONFIG.cta.customValue
-          );
-        }
+        dom.ctaCustomInput?.classList.toggle(
+          "hidden",
+          state.ctaType !==
+            CONFIG.cta.customValue
+        );
 
         updateCtaDisplay();
       }
     );
 
-    if (dom.ctaCustomInput) {
-      dom.ctaCustomInput.addEventListener(
-        "input",
-        function (event) {
-          state.customCta =
-            event.target.value;
+    dom.ctaCustomInput?.addEventListener(
+      "input",
+      function (event) {
+        state.customCta =
+          event.target.value;
 
-          updateCtaDisplay();
-        }
-      );
-    }
+        updateCtaDisplay();
+      }
+    );
   }
 
   /* ==========================================================================
-     EXPORT — EXACT 1000 × 1500 PNG
+     MOBILE LIVE PREVIEW
      ========================================================================== */
+
+  function setupMobilePreview() {
+    if (!dom.pinCard) return;
+
+    /*
+      We add the compact class ONLY after the user has
+      scrolled past the normal preview.
+
+      So:
+      - Page first loads = beautiful large preview.
+      - User scrolls down to edit = small sticky preview.
+      - User goes back up = normal preview again.
+    */
+
+    let originalCardTop = 0;
+
+    function calculatePosition() {
+      if (
+        window.innerWidth >=
+        CONFIG.mobile.breakpoint
+      ) {
+        dom.pinCard.classList.remove(
+          "pf-mobile-live-preview"
+        );
+        return;
+      }
+
+      if (
+        !dom.pinCard.classList.contains(
+          "pf-mobile-live-preview"
+        )
+      ) {
+        originalCardTop =
+          dom.pinCard.getBoundingClientRect().top +
+          window.scrollY;
+      }
+
+      const shouldCompact =
+        window.scrollY >
+        originalCardTop +
+          dom.pinCard.offsetHeight -
+          CONFIG.mobile.stickyTriggerOffset;
+
+      dom.pinCard.classList.toggle(
+        "pf-mobile-live-preview",
+        shouldCompact
+      );
+    }
+
+    setTimeout(function () {
+      originalCardTop =
+        dom.pinCard.getBoundingClientRect().top +
+        window.scrollY;
+
+      calculatePosition();
+    }, 200);
+
+    window.addEventListener(
+      "scroll",
+      calculatePosition,
+      { passive: true }
+    );
+
+    window.addEventListener(
+      "resize",
+      function () {
+        dom.pinCard.classList.remove(
+          "pf-mobile-live-preview"
+        );
+
+        setTimeout(function () {
+          originalCardTop =
+            dom.pinCard.getBoundingClientRect().top +
+            window.scrollY;
+
+          calculatePosition();
+        }, 100);
+      },
+      { passive: true }
+    );
+  }
+
+  /* ==========================================================================
+     EXPORT — EXACT 1000 × 1500
+     ========================================================================== */
+
+  function isIOSDevice() {
+    return (
+      /iPad|iPhone|iPod/.test(
+        navigator.userAgent
+      ) ||
+      (
+        navigator.platform ===
+          "MacIntel" &&
+        navigator.maxTouchPoints > 1
+      )
+    );
+  }
+
+  function makeFilename() {
+    let filename =
+      state.headline.trim() ||
+      "pinforge-pin";
+
+    filename = filename
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    return (
+      `${filename}-1000x1500.png`
+    );
+  }
+
+  function canvasToBlob(canvas) {
+    return new Promise(function (
+      resolve,
+      reject
+    ) {
+      canvas.toBlob(
+        function (blob) {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(
+              new Error(
+                "Could not create PNG."
+              )
+            );
+          }
+        },
+        "image/png",
+        1
+      );
+    });
+  }
 
   async function exportPin() {
     if (
@@ -751,21 +986,25 @@
 
     if (dom.downloadBtn) {
       dom.downloadBtn.disabled = true;
-      dom.downloadBtn.classList.add("opacity-90");
 
       dom.downloadBtn.innerHTML =
         `${ICONS.spinner}<span>Generating 1000×1500 Pin...</span>`;
     }
 
     try {
-      // Wait for fonts before rendering.
-      if (document.fonts && document.fonts.ready) {
+      if (
+        document.fonts &&
+        document.fonts.ready
+      ) {
         await document.fonts.ready;
       }
 
-      // Clone visible pin.
       const clone =
         dom.pinCard.cloneNode(true);
+
+      clone.classList.remove(
+        "pf-mobile-live-preview"
+      );
 
       clone.style.width =
         `${CONFIG.export.width}px`;
@@ -779,40 +1018,49 @@
       clone.style.maxWidth =
         `${CONFIG.export.width}px`;
 
+      clone.style.position =
+        "relative";
+
+      clone.style.inset = "auto";
       clone.style.transform = "none";
       clone.style.borderRadius = "0";
       clone.style.boxShadow = "none";
       clone.style.margin = "0";
 
-      /* --------------------------------------------------------------------
-         Make sure image transform is carried into exported clone
-         -------------------------------------------------------------------- */
+      /* IMAGE */
 
       const cloneImage =
-        clone.querySelector("#pinImage");
+        clone.querySelector(
+          "#pinImage"
+        );
 
       if (cloneImage) {
-        cloneImage.style.transform =
-          `scale(${state.zoom / 100})`;
-
-        cloneImage.style.transformOrigin =
-          "center center";
+        const imageTransform =
+          getImageTransform();
 
         cloneImage.style.objectPosition =
           `${state.posX}% ${state.posY}%`;
+
+        cloneImage.style.transform =
+          imageTransform.transform;
+
+        cloneImage.style.transformOrigin =
+          "center center";
       }
 
-      /* --------------------------------------------------------------------
-         Export typography
-         -------------------------------------------------------------------- */
+      /* HEADLINE */
 
       const cloneHeadline =
-        clone.querySelector("#pinHeadline");
+        clone.querySelector(
+          "#pinHeadline"
+        );
 
       if (cloneHeadline) {
         cloneHeadline.style.fontSize =
-          `${CONFIG.export.width *
-          CONFIG.export.headlineFontRatio}px`;
+          `${
+            CONFIG.export.width *
+            CONFIG.export.headlineFontRatio
+          }px`;
 
         cloneHeadline.style.fontFamily =
           FONT_FAMILIES[state.font];
@@ -821,6 +1069,8 @@
           state.color;
       }
 
+      /* SUBHEADLINE */
+
       const cloneSubheadline =
         clone.querySelector(
           "#pinSubheadline"
@@ -828,13 +1078,13 @@
 
       if (cloneSubheadline) {
         cloneSubheadline.style.fontSize =
-          `${CONFIG.export.width *
-          CONFIG.export.subheadlineFontRatio}px`;
+          `${
+            CONFIG.export.width *
+            CONFIG.export.subheadlineFontRatio
+          }px`;
       }
 
-      /* --------------------------------------------------------------------
-         Place clone offscreen
-         -------------------------------------------------------------------- */
+      /* GHOST */
 
       dom.exportGhost.innerHTML = "";
 
@@ -844,12 +1094,18 @@
       dom.exportGhost.style.height =
         `${CONFIG.export.height}px`;
 
-      dom.exportGhost.appendChild(clone);
+      dom.exportGhost.appendChild(
+        clone
+      );
 
-      /* --------------------------------------------------------------------
-         IMPORTANT:
-         scale = 1 means final canvas is EXACTLY 1000 × 1500.
-         -------------------------------------------------------------------- */
+      if (
+        typeof html2canvas ===
+        "undefined"
+      ) {
+        throw new Error(
+          "html2canvas is not loaded."
+        );
+      }
 
       const canvas =
         await html2canvas(clone, {
@@ -862,37 +1118,67 @@
           logging: false,
         });
 
-      /* --------------------------------------------------------------------
-         Download
-         -------------------------------------------------------------------- */
-
-      const link =
-        document.createElement("a");
-
-      let filename =
-        state.headline.trim() ||
-        "pinforge-pin";
-
-      filename = filename
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
-      link.download =
-        `${filename}-1000x1500.png`;
-
-      link.href =
-        canvas.toDataURL("image/png");
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
       dom.exportGhost.innerHTML = "";
 
-      /* --------------------------------------------------------------------
-         Success feedback
-         -------------------------------------------------------------------- */
+      const filename =
+        makeFilename();
+
+      const blob =
+        await canvasToBlob(canvas);
+
+      const blobUrl =
+        URL.createObjectURL(blob);
+
+      /* --------------------------------------------------------
+         iPHONE / iPAD
+         --------------------------------------------------------
+
+         Safari often ignores <a download>.
+         So instead we open the PNG itself.
+
+         User can then:
+         Share → Save Image
+         OR
+         Share → Save to Files
+      -------------------------------------------------------- */
+
+      if (isIOSDevice()) {
+        const opened =
+          window.open(
+            blobUrl,
+            "_blank"
+          );
+
+        if (!opened) {
+          window.location.href =
+            blobUrl;
+        }
+
+        // Keep URL alive longer because Safari needs it.
+        setTimeout(function () {
+          URL.revokeObjectURL(blobUrl);
+        }, 60000);
+      }
+
+      /* --------------------------------------------------------
+         DESKTOP / ANDROID / NORMAL BROWSERS
+      -------------------------------------------------------- */
+
+      else {
+        const link =
+          document.createElement("a");
+
+        link.href = blobUrl;
+        link.download = filename;
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(function () {
+          URL.revokeObjectURL(blobUrl);
+        }, 5000);
+      }
 
       if (dom.downloadBtn) {
         dom.downloadBtn.classList.add(
@@ -900,15 +1186,15 @@
         );
 
         dom.downloadBtn.innerHTML =
-          `${ICONS.check}<span>Pin Downloaded!</span>`;
+          `${ICONS.check}<span>Pin Ready!</span>`;
       }
 
       setTimeout(function () {
         if (dom.downloadBtn) {
-          dom.downloadBtn.disabled = false;
+          dom.downloadBtn.disabled =
+            false;
 
           dom.downloadBtn.classList.remove(
-            "opacity-90",
             "pf-success"
           );
 
@@ -928,11 +1214,8 @@
       dom.exportGhost.innerHTML = "";
 
       if (dom.downloadBtn) {
-        dom.downloadBtn.disabled = false;
-
-        dom.downloadBtn.classList.remove(
-          "opacity-90"
-        );
+        dom.downloadBtn.disabled =
+          false;
 
         dom.downloadBtn.innerHTML =
           `${ICONS.download}<span>Export Failed — Retry</span>`;
@@ -943,25 +1226,21 @@
   }
 
   function setupExporter() {
-    if (!dom.downloadBtn) return;
-
-    dom.downloadBtn.addEventListener(
+    dom.downloadBtn?.addEventListener(
       "click",
       exportPin
     );
   }
 
   /* ==========================================================================
-     HEADER EFFECT
+     HEADER
      ========================================================================== */
 
   function setupChromeEffects() {
-    if (!dom.siteHeader) return;
-
     window.addEventListener(
       "scroll",
       function () {
-        dom.siteHeader.classList.toggle(
+        dom.siteHeader?.classList.toggle(
           "is-scrolled",
           window.scrollY >
             CONFIG.headerScrollThresholdPx
@@ -976,25 +1255,26 @@
      ========================================================================== */
 
   function setInitialState() {
-    // Image
     resetImagePosition();
 
-    // Bottom overlay
     setOverlayStyle("bottom");
 
-    // League Spartan
-    state.font = "league-spartan";
+    state.font =
+      "league-spartan";
 
     if (dom.pinHeadline) {
       dom.pinHeadline.style.fontFamily =
-        FONT_FAMILIES["league-spartan"];
+        FONT_FAMILIES[
+          "league-spartan"
+        ];
     }
 
-    // White headline
-    applyHeadlineColor("#ffffff");
+    applyHeadlineColor(
+      "#ffffff"
+    );
 
-    // Default CTA
-    state.ctaType = "SHOP ON ETSY";
+    state.ctaType =
+      "SHOP ON ETSY";
 
     if (dom.ctaSelect) {
       dom.ctaSelect.value =
@@ -1003,16 +1283,16 @@
 
     updateCtaDisplay();
 
-    // Customize Design CLOSED
     setCustomizePanel(false);
 
-    // Counters
     if (dom.headlineCount) {
-      dom.headlineCount.textContent = "0/60";
+      dom.headlineCount.textContent =
+        "0/60";
     }
 
     if (dom.subheadlineCount) {
-      dom.subheadlineCount.textContent = "0/80";
+      dom.subheadlineCount.textContent =
+        "0/80";
     }
 
     setTimeout(
@@ -1036,16 +1316,18 @@
     setupCtaSelector();
     setupExporter();
     setupChromeEffects();
+    setupMobilePreview();
 
     setInitialState();
 
     console.log(
-      "PinForge v0.2 initialized ✨"
+      "PinForge v0.2.2 initialized ✨"
     );
   }
 
   if (
-    document.readyState === "loading"
+    document.readyState ===
+    "loading"
   ) {
     document.addEventListener(
       "DOMContentLoaded",
