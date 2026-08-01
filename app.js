@@ -1,6 +1,6 @@
 /* ==========================================================================
-   PinForge v0.5 — app.js
-   Stable Floating Preview + Image Position + Clean Export + Canvas CTA
+   PinForge v0.6 — app.js
+   Stable Floating Preview + Image Position + Clean Export + HTML Export CTA
    ========================================================================== */
 
 (function () {
@@ -991,6 +991,11 @@
 
   /* ==========================================================================
      17. EXPORT IMAGE LAYER
+
+     Keep the working v0.5 background-image method.
+
+     This is important because it avoids html2canvas stretching
+     the uploaded product image.
      ========================================================================== */
 
   function buildExportImageLayer(clone) {
@@ -1086,18 +1091,263 @@
 
 
   /* ==========================================================================
-     18. EXPORT CARD
+     18. EXPORT CTA
 
-     IMPORTANT:
-     CTA is intentionally hidden here.
+     v0.6:
+     Do NOT hide the CTA.
+     Do NOT draw CTA on canvas.
 
-     We draw it directly onto the final canvas AFTER html2canvas renders.
+     Rebuild it as plain HTML with explicit inline styles,
+     while keeping #pinCtaWrap as a normal child of #pinTextWrap.
+
+     This means Bottom / Center / Top follow the same flex layout
+     as headline and subheadline.
+     ========================================================================== */
+
+  function rebuildExportCTA(clone) {
+    const ctaWrap =
+      clone.querySelector("#pinCtaWrap");
+
+    if (!ctaWrap) return;
+
+
+    /*
+      No CTA selected.
+    */
+
+    if (state.ctaType === "none") {
+      ctaWrap.className = "";
+      ctaWrap.innerHTML = "";
+      ctaWrap.style.display = "none";
+      return;
+    }
+
+
+    const text =
+      getCtaText();
+
+
+    /*
+      Strip inherited Tailwind state from wrapper.
+
+      IMPORTANT:
+      Keep it in normal flex flow.
+    */
+
+    ctaWrap.className = "";
+
+    ctaWrap.innerHTML = "";
+
+    ctaWrap.style.display = "block";
+    ctaWrap.style.position = "relative";
+
+    ctaWrap.style.width = "auto";
+    ctaWrap.style.height = "auto";
+
+    ctaWrap.style.margin = "0";
+    ctaWrap.style.padding = "0";
+
+    ctaWrap.style.opacity = "1";
+    ctaWrap.style.visibility = "visible";
+
+    ctaWrap.style.zIndex = "20";
+
+
+    /*
+      White CTA pill.
+    */
+
+    const badge =
+      document.createElement("div");
+
+    badge.style.display =
+      "inline-flex";
+
+    badge.style.alignItems =
+      "center";
+
+    badge.style.justifyContent =
+      "center";
+
+    badge.style.boxSizing =
+      "border-box";
+
+    badge.style.width =
+      "auto";
+
+    badge.style.height =
+      "56px";
+
+    badge.style.minHeight =
+      "56px";
+
+    badge.style.padding =
+      "0 26px";
+
+    badge.style.margin =
+      "8px 0 0 0";
+
+    badge.style.gap =
+      "12px";
+
+    /*
+      Solid white — deliberately no opacity.
+    */
+
+    badge.style.background =
+      "#FFFFFF";
+
+    badge.style.backgroundColor =
+      "#FFFFFF";
+
+    badge.style.border =
+      "0";
+
+    badge.style.borderRadius =
+      "9999px";
+
+    badge.style.opacity =
+      "1";
+
+    badge.style.visibility =
+      "visible";
+
+    badge.style.whiteSpace =
+      "nowrap";
+
+
+    /*
+      Gold dot.
+    */
+
+    const dot =
+      document.createElement("span");
+
+    dot.style.display =
+      "block";
+
+    dot.style.width =
+      "12px";
+
+    dot.style.height =
+      "12px";
+
+    dot.style.minWidth =
+      "12px";
+
+    dot.style.minHeight =
+      "12px";
+
+    dot.style.flex =
+      "0 0 12px";
+
+    dot.style.margin =
+      "0";
+
+    dot.style.padding =
+      "0";
+
+    dot.style.background =
+      "#B88A58";
+
+    dot.style.backgroundColor =
+      "#B88A58";
+
+    dot.style.borderRadius =
+      "9999px";
+
+    dot.style.opacity =
+      "1";
+
+
+    /*
+      Dark CTA label.
+
+      Plain Arial is intentional for export reliability.
+      No inherited text-white class.
+    */
+
+    const label =
+      document.createElement("span");
+
+    label.textContent =
+      text;
+
+    label.style.display =
+      "block";
+
+    label.style.margin =
+      "0";
+
+    label.style.padding =
+      "0";
+
+    label.style.color =
+      "#1F2937";
+
+    label.style.webkitTextFillColor =
+      "#1F2937";
+
+    label.style.fontFamily =
+      "Arial, sans-serif";
+
+    label.style.fontSize =
+      "24px";
+
+    label.style.fontWeight =
+      "700";
+
+    label.style.fontStyle =
+      "normal";
+
+    label.style.lineHeight =
+      "1";
+
+    label.style.letterSpacing =
+      "1px";
+
+    label.style.textDecoration =
+      "none";
+
+    label.style.textShadow =
+      "none";
+
+    label.style.opacity =
+      "1";
+
+    label.style.visibility =
+      "visible";
+
+    label.style.whiteSpace =
+      "nowrap";
+
+
+    badge.appendChild(
+      dot
+    );
+
+    badge.appendChild(
+      label
+    );
+
+    ctaWrap.appendChild(
+      badge
+    );
+  }
+
+
+  /* ==========================================================================
+     19. EXPORT CARD
      ========================================================================== */
 
   function buildExportCard() {
     const clone =
       dom.pinCard.cloneNode(true);
 
+
+    /*
+      Main export card.
+    */
 
     clone.id =
       "pinCardExport";
@@ -1176,6 +1426,10 @@
 
     /*
       Text wrapper.
+
+      IMPORTANT:
+      preserve the selected Bottom / Center / Top Tailwind classes.
+      Do not rebuild its position manually.
     */
 
     const textWrap =
@@ -1261,357 +1515,15 @@
 
 
     /*
-      Hide original CTA from html2canvas.
-
-      Canvas draws a fresh one later.
+      CTA stays inside #pinTextWrap.
     */
 
-    const ctaWrap =
-      clone.querySelector("#pinCtaWrap");
-
-    if (ctaWrap) {
-      ctaWrap.style.visibility =
-        "hidden";
-    }
+    rebuildExportCTA(
+      clone
+    );
 
 
     return clone;
-  }
-
-
-  /* ==========================================================================
-     19. CANVAS CTA
-
-     This is the CTA fix.
-
-     html2canvas does NOT render the badge text anymore.
-     We draw:
-     - white pill
-     - gold dot
-     - dark text
-
-     directly onto the finished canvas.
-     ========================================================================== */
-
-  function roundedRect(
-    ctx,
-    x,
-    y,
-    width,
-    height,
-    radius
-  ) {
-    const r =
-      Math.min(
-        radius,
-        width / 2,
-        height / 2
-      );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      x + r,
-      y
-    );
-
-    ctx.lineTo(
-      x + width - r,
-      y
-    );
-
-    ctx.quadraticCurveTo(
-      x + width,
-      y,
-      x + width,
-      y + r
-    );
-
-    ctx.lineTo(
-      x + width,
-      y + height - r
-    );
-
-    ctx.quadraticCurveTo(
-      x + width,
-      y + height,
-      x + width - r,
-      y + height
-    );
-
-    ctx.lineTo(
-      x + r,
-      y + height
-    );
-
-    ctx.quadraticCurveTo(
-      x,
-      y + height,
-      x,
-      y + height - r
-    );
-
-    ctx.lineTo(
-      x,
-      y + r
-    );
-
-    ctx.quadraticCurveTo(
-      x,
-      y,
-      x + r,
-      y
-    );
-
-    ctx.closePath();
-  }
-
-
-  function getCanvasCTAPosition(
-    canvas,
-    badgeWidth,
-    badgeHeight
-  ) {
-    const paddingX =
-      60;
-
-    /*
-      Match the general position of the HTML CTA
-      depending on overlay style.
-    */
-
-    if (state.style === "top") {
-      return {
-        x: paddingX,
-        y: 255,
-      };
-    }
-
-
-    if (state.style === "center") {
-      return {
-        x:
-          (canvas.width - badgeWidth) / 2,
-
-        y:
-          canvas.height / 2 + 150,
-      };
-    }
-
-
-    /*
-      Bottom overlay.
-    */
-
-    return {
-      x: paddingX,
-      y:
-        canvas.height -
-        badgeHeight -
-        70,
-    };
-  }
-
-
-  function drawCanvasCTA(canvas) {
-    if (
-      state.ctaType === "none"
-    ) {
-      return;
-    }
-
-
-    const ctx =
-      canvas.getContext("2d");
-
-    if (!ctx) return;
-
-
-    const text =
-      getCtaText();
-
-
-    /*
-      CTA typography.
-    */
-
-    const fontSize =
-      24;
-
-    const fontWeight =
-      700;
-
-    ctx.save();
-
-    ctx.font =
-      `${fontWeight} ${fontSize}px Inter, Arial, sans-serif`;
-
-    ctx.textBaseline =
-      "middle";
-
-
-    /*
-      Dimensions.
-    */
-
-    const textWidth =
-      ctx.measureText(text).width;
-
-    const dotSize =
-      12;
-
-    const gap =
-      12;
-
-    const paddingLeft =
-      26;
-
-    const paddingRight =
-      26;
-
-    const badgeHeight =
-      56;
-
-    const badgeWidth =
-      Math.ceil(
-        paddingLeft +
-        dotSize +
-        gap +
-        textWidth +
-        paddingRight
-      );
-
-
-    const position =
-      getCanvasCTAPosition(
-        canvas,
-        badgeWidth,
-        badgeHeight
-      );
-
-
-    const x =
-      position.x;
-
-    const y =
-      position.y;
-
-
-    /*
-      Soft shadow.
-    */
-
-    ctx.save();
-
-    ctx.shadowColor =
-      "rgba(0,0,0,0.12)";
-
-    ctx.shadowBlur =
-      12;
-
-    ctx.shadowOffsetY =
-      3;
-
-    ctx.fillStyle =
-      "#FFFFFF";
-
-    roundedRect(
-      ctx,
-      x,
-      y,
-      badgeWidth,
-      badgeHeight,
-      badgeHeight / 2
-    );
-
-    ctx.fill();
-
-    ctx.restore();
-
-
-    /*
-      White badge.
-    */
-
-    ctx.fillStyle =
-      "#FFFFFF";
-
-    roundedRect(
-      ctx,
-      x,
-      y,
-      badgeWidth,
-      badgeHeight,
-      badgeHeight / 2
-    );
-
-    ctx.fill();
-
-
-    /*
-      Gold dot.
-    */
-
-    const dotX =
-      x +
-      paddingLeft +
-      dotSize / 2;
-
-    const dotY =
-      y +
-      badgeHeight / 2;
-
-    ctx.beginPath();
-
-    ctx.arc(
-      dotX,
-      dotY,
-      dotSize / 2,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fillStyle =
-      "#B88A58";
-
-    ctx.fill();
-
-
-    /*
-      CTA text.
-
-      Actual canvas fillText.
-      html2canvas cannot turn this white.
-    */
-
-    ctx.font =
-      `${fontWeight} ${fontSize}px Inter, Arial, sans-serif`;
-
-    ctx.fillStyle =
-      "#1F2937";
-
-    ctx.globalAlpha =
-      1;
-
-    ctx.textAlign =
-      "left";
-
-    ctx.textBaseline =
-      "middle";
-
-    ctx.fillText(
-      text,
-      x +
-        paddingLeft +
-        dotSize +
-        gap,
-      y +
-        badgeHeight / 2 +
-        1
-    );
-
-
-    ctx.restore();
   }
 
 
@@ -1764,7 +1676,7 @@
 
 
       /*
-        Let browser paint.
+        Let browser finish layout.
       */
 
       await new Promise(function (resolve) {
@@ -1775,13 +1687,13 @@
 
 
       /*
-        Safari/data URL paint buffer.
+        Safari/data URL background paint buffer.
       */
 
       await new Promise(function (resolve) {
         setTimeout(
           resolve,
-          100
+          120
         );
       });
 
@@ -1797,7 +1709,8 @@
 
 
       /*
-        Render card WITHOUT CTA.
+        Render EVERYTHING together:
+        image + scrim + text + HTML CTA.
       */
 
       const canvas =
@@ -1838,15 +1751,6 @@
               CONFIG.exportHeight,
           }
         );
-
-
-      /*
-        Draw CTA directly on final canvas.
-      */
-
-      drawCanvasCTA(
-        canvas
-      );
 
 
       console.log(
@@ -2072,7 +1976,7 @@
 
 
     console.log(
-      "PinForge v0.5 initialized ✨"
+      "PinForge v0.6 initialized ✨"
     );
   }
 
